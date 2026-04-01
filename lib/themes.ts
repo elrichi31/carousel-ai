@@ -25,3 +25,69 @@ export const fontThemes = {
 } as const
 
 export type FontThemeId = keyof typeof fontThemes
+
+// Background style patterns overlaid on the primary color gradient
+export const bgStyles = {
+  gradient: { label: 'Gradient' },
+  lines:    { label: 'Lines' },
+  dots:     { label: 'Dots' },
+  grid:     { label: 'Grid' },
+  noise:    { label: 'Noise' },
+  radial:   { label: 'Radial' },
+} as const
+
+export type BgStyleId = keyof typeof bgStyles
+
+/**
+ * Returns CSS properties for the given background style.
+ *
+ * Uses `backgroundImage` (NOT the `background` shorthand) so that
+ * `backgroundColor` always acts as a solid dark fallback. If `color-mix()`
+ * or `oklch()` is unsupported, the dark `#111` still shows through.
+ */
+export function buildBgStyle(primary: string, style: BgStyleId, startPct: number, endPct: number): Record<string, string> {
+  const mix = (pct: number) => `color-mix(in srgb, ${primary} ${pct}%, transparent)`
+  const base = `linear-gradient(to bottom right, ${mix(startPct)}, ${mix(endPct)})`
+  const dark = '#111111'
+
+  switch (style) {
+    case 'gradient':
+      return { backgroundColor: dark, backgroundImage: base }
+
+    case 'lines':
+      return {
+        backgroundColor: dark,
+        backgroundImage: `repeating-linear-gradient(-45deg, ${mix(6)} 0px, ${mix(6)} 1px, transparent 1px, transparent 12px), ${base}`,
+      }
+
+    case 'dots':
+      return {
+        backgroundColor: dark,
+        backgroundImage: `radial-gradient(${mix(10)} 1px, transparent 1px), ${base}`,
+        backgroundSize: '16px 16px, 100% 100%',
+      }
+
+    case 'grid':
+      return {
+        backgroundColor: dark,
+        backgroundImage: `linear-gradient(${mix(5)} 1px, transparent 1px), linear-gradient(90deg, ${mix(5)} 1px, transparent 1px), ${base}`,
+        backgroundSize: '24px 24px, 24px 24px, 100% 100%',
+      }
+
+    case 'noise':
+      return {
+        backgroundColor: dark,
+        backgroundImage: `repeating-linear-gradient(0deg, ${mix(3)} 0px, transparent 1px, transparent 2px), repeating-linear-gradient(90deg, ${mix(3)} 0px, transparent 1px, transparent 3px), ${base}`,
+        backgroundSize: '3px 3px, 3px 3px, 100% 100%',
+      }
+
+    case 'radial':
+      return {
+        backgroundColor: dark,
+        backgroundImage: `radial-gradient(ellipse at 30% 20%, ${mix(startPct + 10)} 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, ${mix(startPct)} 0%, transparent 50%), ${base}`,
+      }
+
+    default:
+      return { backgroundColor: dark, backgroundImage: base }
+  }
+}

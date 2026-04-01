@@ -36,6 +36,9 @@ export interface Slide {
   imageUrl?: string
   imagePosition?: "left" | "right" | "background"
 
+  // Layout variant (for layouts that have multiple visual styles)
+  layoutVariant?: string
+
   // Styling
   backgroundColor: string   // Tailwind class
   textColor: string          // Tailwind class

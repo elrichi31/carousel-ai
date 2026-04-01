@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Heart, MessageCircle, Send, Bookmark, MoreHo
 import { Button } from "@/components/ui/button"
 import { SlideRenderer } from "@/components/slide-renderer"
 import type { Slide, BrandSettings, PostCaption } from "@/lib/types"
-import type { FontThemeId } from "@/lib/themes"
+import type { FontThemeId, BgStyleId } from "@/lib/themes"
 
 interface CarouselPreviewProps {
   slides: Slide[]
@@ -13,8 +13,9 @@ interface CarouselPreviewProps {
   brand?: BrandSettings | null
   caption?: PostCaption | null
   onCaptionChange?: (caption: PostCaption) => void
-  activePrimary?: string   // resolved CSS color value (oklch or hex)
+  activePrimary?: string
   fontTheme?: FontThemeId
+  bgStyle?: BgStyleId
 }
 
 export function CarouselPreview({
@@ -26,6 +27,7 @@ export function CarouselPreview({
   onCaptionChange,
   activePrimary,
   fontTheme,
+  bgStyle,
 }: CarouselPreviewProps) {
   const goToPrevious = () => {
     onSlideChange(activeSlide > 0 ? activeSlide - 1 : slides.length - 1)
@@ -89,6 +91,7 @@ export function CarouselPreview({
               brand={brand}
               activePrimary={activePrimary}
               fontTheme={fontTheme}
+              bgStyle={bgStyle}
             />
           </div>
 

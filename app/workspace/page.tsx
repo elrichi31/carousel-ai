@@ -9,7 +9,7 @@ import { EditorPanel } from "@/components/editor-panel"
 import { useBrand } from "@/hooks/use-brand"
 import { mockSlides } from "@/lib/mock-data"
 import type { Slide, SlideLayout, CarouselFormData, PostCaption } from "@/lib/types"
-import { colorThemes, CUSTOM_COLOR_ID, type ColorThemeId, type FontThemeId } from "@/lib/themes"
+import { colorThemes, CUSTOM_COLOR_ID, type ColorThemeId, type FontThemeId, type BgStyleId } from "@/lib/themes"
 
 export default function WorkspacePage() {
   const [slides, setSlides] = useState<Slide[]>(mockSlides)
@@ -30,8 +30,9 @@ export default function WorkspacePage() {
   const [selectedColor, setSelectedColor] = useState<ColorThemeId | typeof CUSTOM_COLOR_ID>("green")
   const [customColor, setCustomColor] = useState<string>("#22c55e")
   const [selectedFont, setSelectedFont] = useState<FontThemeId>("geist")
+  const [selectedBgStyle, setSelectedBgStyle] = useState<BgStyleId>("gradient")
 
-  const currentLayout = slides[activeSlide]?.layout || "content"
+  const currentSlide = slides[activeSlide] ?? slides[0]
 
   // Resolve the actual primary color string to pass down to the renderer
   const activePrimary =
@@ -85,6 +86,12 @@ export default function WorkspacePage() {
     )
   }
 
+  const handleVariantChange = (variant: string) => {
+    setSlides((prev) =>
+      prev.map((slide, i) => (i === activeSlide ? { ...slide, layoutVariant: variant } : slide))
+    )
+  }
+
   const handleRegenerateSlide = () => {
     console.log("Regenerating slide", activeSlide)
   }
@@ -126,19 +133,26 @@ export default function WorkspacePage() {
               onCaptionChange={setCaption}
               activePrimary={activePrimary}
               fontTheme={selectedFont}
+              bgStyle={selectedBgStyle}
             />
           </div>
 
           {/* Editor Panel */}
           <div className="border-l border-border overflow-y-auto hidden lg:block">
             <EditorPanel
-              selectedLayout={currentLayout}
+              currentSlide={currentSlide}
+              slideIndex={activeSlide}
+              totalSlides={slides.length}
               selectedColor={selectedColor}
               customColor={customColor}
               selectedFont={selectedFont}
+              selectedBgStyle={selectedBgStyle}
+              activePrimary={activePrimary}
               onLayoutChange={handleLayoutChange}
+              onVariantChange={handleVariantChange}
               onColorChange={handleColorChange}
               onFontChange={setSelectedFont}
+              onBgStyleChange={setSelectedBgStyle}
               onRegenerateSlide={handleRegenerateSlide}
               onDuplicateSlide={handleDuplicateSlide}
             />
