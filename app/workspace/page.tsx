@@ -8,13 +8,14 @@ import { CarouselPreview } from "@/components/carousel-preview"
 import { EditorPanel } from "@/components/editor-panel"
 import { useBrand } from "@/hooks/use-brand"
 import { mockSlides } from "@/lib/mock-data"
-import type { Slide, SlideLayout, CarouselFormData } from "@/lib/types"
+import type { Slide, SlideLayout, CarouselFormData, PostCaption } from "@/lib/types"
 
 export default function WorkspacePage() {
   const [slides, setSlides] = useState<Slide[]>(mockSlides)
   const [activeSlide, setActiveSlide] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [caption, setCaption] = useState<PostCaption | null>(null)
   const { brand, updateBrand, clearBrand } = useBrand()
 
   // Form state
@@ -30,7 +31,6 @@ export default function WorkspacePage() {
   const [selectedColor, setSelectedColor] = useState("default")
   const [selectedFont, setSelectedFont] = useState("sans")
 
-  // Current slide's layout
   const currentLayout = slides[activeSlide]?.layout || "content"
 
   const handleFormChange = (data: Partial<CarouselFormData>) => {
@@ -60,6 +60,7 @@ export default function WorkspacePage() {
 
       setSlides(data.slides)
       setActiveSlide(0)
+      setCaption(data.caption ?? null)
     } catch {
       setError("Network error. Check your connection and try again.")
     } finally {
@@ -106,12 +107,14 @@ export default function WorkspacePage() {
           </div>
 
           {/* Preview Panel */}
-          <div className="bg-muted/30 overflow-y-auto flex items-center justify-center p-8">
+          <div className="bg-muted/30 overflow-y-auto flex items-start justify-center p-8">
             <CarouselPreview
               slides={slides}
               activeSlide={activeSlide}
               onSlideChange={setActiveSlide}
               brand={brand}
+              caption={caption}
+              onCaptionChange={setCaption}
             />
           </div>
 

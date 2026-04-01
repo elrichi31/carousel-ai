@@ -9,7 +9,6 @@ const openai = new OpenAI({
 
 export async function POST(request: Request) {
   try {
-    // Validate API key is configured
     if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "sk-your-api-key-here") {
       return NextResponse.json(
         { error: "OpenAI API key not configured. Add your key to .env.local" },
@@ -23,12 +22,8 @@ export async function POST(request: Request) {
       brand: BrandSettings | null
     }
 
-    // Validate required fields
-    if (!formData?.topic) {
-      return NextResponse.json(
-        { error: "Topic is required" },
-        { status: 400 }
-      )
+    if (!formData?.topic?.trim()) {
+      return NextResponse.json({ error: "Topic is required" }, { status: 400 })
     }
 
     const systemPrompt = buildSystemPrompt()
@@ -40,41 +35,38 @@ export async function POST(request: Request) {
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      temperature: 0.7,
-      max_tokens: 4000,
+      temperature: 0.4,
+      max_tokens: 4500,
+      response_format: { type: "json_object" },
     })
 
     const content = completion.choices[0]?.message?.content
     if (!content) {
+      return NextResponse.json({ error: "No response from AI" }, { status: 500 })
+    }
+
+    const parsed = JSON.parse(content)
+
+    if (!Array.isArray(parsed.slides)) {
       return NextResponse.json(
-        { error: "No response from AI" },
+        { error: "AI returned invalid format — missing slides array" },
         { status: 500 }
       )
     }
 
-    // Parse the JSON response — handle potential markdown code fences
-    let cleaned = content.trim()
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "")
+    const slidesWithIds = parsed.slides.map(
+      (slide: Record<string, unknown>, index: number) => ({
+        ...slide,
+        id: `${Date.now()}-${index}`,
+      })
+    )
+
+    const caption = parsed.caption ?? {
+      text: `${formData.topic} 🚀`,
+      hashtags: [],
     }
 
-    const slides = JSON.parse(cleaned)
-
-    // Validate it's an array
-    if (!Array.isArray(slides)) {
-      return NextResponse.json(
-        { error: "AI returned invalid format" },
-        { status: 500 }
-      )
-    }
-
-    // Add IDs to each slide
-    const slidesWithIds = slides.map((slide: Record<string, unknown>, index: number) => ({
-      ...slide,
-      id: `${Date.now()}-${index}`,
-    }))
-
-    return NextResponse.json({ slides: slidesWithIds })
+    return NextResponse.json({ slides: slidesWithIds, caption })
   } catch (error) {
     console.error("Generate error:", error)
 
