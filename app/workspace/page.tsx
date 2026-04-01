@@ -9,6 +9,7 @@ import { EditorPanel } from "@/components/editor-panel"
 import { useBrand } from "@/hooks/use-brand"
 import { mockSlides } from "@/lib/mock-data"
 import type { Slide, SlideLayout, CarouselFormData, PostCaption } from "@/lib/types"
+import { colorThemes, CUSTOM_COLOR_ID, type ColorThemeId, type FontThemeId } from "@/lib/themes"
 
 export default function WorkspacePage() {
   const [slides, setSlides] = useState<Slide[]>(mockSlides)
@@ -18,7 +19,6 @@ export default function WorkspacePage() {
   const [caption, setCaption] = useState<PostCaption | null>(null)
   const { brand, updateBrand, clearBrand } = useBrand()
 
-  // Form state
   const [formData, setFormData] = useState<CarouselFormData>({
     topic: "",
     audience: "General",
@@ -27,14 +27,25 @@ export default function WorkspacePage() {
     visualStyle: "Minimal",
   })
 
-  // Editor state
-  const [selectedColor, setSelectedColor] = useState("default")
-  const [selectedFont, setSelectedFont] = useState("sans")
+  const [selectedColor, setSelectedColor] = useState<ColorThemeId | typeof CUSTOM_COLOR_ID>("green")
+  const [customColor, setCustomColor] = useState<string>("#22c55e")
+  const [selectedFont, setSelectedFont] = useState<FontThemeId>("geist")
 
   const currentLayout = slides[activeSlide]?.layout || "content"
 
+  // Resolve the actual primary color string to pass down to the renderer
+  const activePrimary =
+    selectedColor === CUSTOM_COLOR_ID
+      ? customColor
+      : colorThemes[selectedColor]?.primary ?? colorThemes.green.primary
+
   const handleFormChange = (data: Partial<CarouselFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }))
+  }
+
+  const handleColorChange = (color: ColorThemeId | typeof CUSTOM_COLOR_ID, hex?: string) => {
+    setSelectedColor(color)
+    if (color === CUSTOM_COLOR_ID && hex) setCustomColor(hex)
   }
 
   const handleGenerate = async () => {
@@ -70,9 +81,7 @@ export default function WorkspacePage() {
 
   const handleLayoutChange = (layout: SlideLayout) => {
     setSlides((prev) =>
-      prev.map((slide, i) =>
-        i === activeSlide ? { ...slide, layout } : slide
-      )
+      prev.map((slide, i) => (i === activeSlide ? { ...slide, layout } : slide))
     )
   }
 
@@ -115,6 +124,8 @@ export default function WorkspacePage() {
               brand={brand}
               caption={caption}
               onCaptionChange={setCaption}
+              activePrimary={activePrimary}
+              fontTheme={selectedFont}
             />
           </div>
 
@@ -123,9 +134,10 @@ export default function WorkspacePage() {
             <EditorPanel
               selectedLayout={currentLayout}
               selectedColor={selectedColor}
+              customColor={customColor}
               selectedFont={selectedFont}
               onLayoutChange={handleLayoutChange}
-              onColorChange={setSelectedColor}
+              onColorChange={handleColorChange}
               onFontChange={setSelectedFont}
               onRegenerateSlide={handleRegenerateSlide}
               onDuplicateSlide={handleDuplicateSlide}

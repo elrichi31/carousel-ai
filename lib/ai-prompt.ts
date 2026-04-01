@@ -123,12 +123,21 @@ export function buildUserPrompt(
   formData: CarouselFormData,
   brand: BrandSettings | null
 ): string {
-  let prompt = `Generate an Instagram carousel with EXACTLY ${formData.slideCount} slides.
+  const n = formData.slideCount
 
-Topic: ${formData.topic}
+  // Build an explicit numbered plan so the model can't miss or skip a slide
+  const slidePlan = buildSlidePlan(n)
+
+  let prompt = `Generate an Instagram carousel with EXACTLY ${n} slides about: "${formData.topic}"
+
 Target audience: ${formData.audience}
 Tone: ${formData.tone}
-Visual style: ${formData.visualStyle}`
+Visual style: ${formData.visualStyle}
+
+## REQUIRED SLIDE PLAN — follow this exactly, ${n} slides total:
+${slidePlan}
+
+IMPORTANT: layouts CAN repeat across middle slides (e.g. two "content" slides, two "list" slides) — just use completely different content, angle, and information for each one so they feel fresh.`
 
   if (brand?.name) {
     prompt += `\n\nBrand: "${brand.name}" — reference it naturally in the CTA slide and caption.`
@@ -138,7 +147,50 @@ Visual style: ${formData.visualStyle}`
     prompt += `\nBrand colors (reference only, do NOT use as backgroundColor/textColor): ${brand.colors.join(", ")}`
   }
 
-  prompt += `\n\nRemember: return ONLY the JSON object with "slides" and "caption" keys. No extra text.`
+  prompt += `\n\nReturn ONLY the JSON object with "slides" (array of exactly ${n} items) and "caption" keys.`
 
   return prompt
+}
+
+/**
+ * Generates an explicit numbered slide plan so the model has no ambiguity
+ * about how many slides to produce and which position each layout goes in.
+ */
+function buildSlidePlan(n: number): string {
+  const lines: string[] = []
+
+  lines.push(`Slide 1: "cover" — hook the audience, big title + subtitle + emoji`)
+
+  if (n === 2) {
+    lines.push(`Slide 2: "cta" — call to action`)
+  } else if (n === 3) {
+    lines.push(`Slide 2: "content" or "list" — main point`)
+    lines.push(`Slide 3: "cta" — call to action`)
+  } else {
+    // Middle slides: n - 2 of them
+    const middleCount = n - 2
+    const middleLayouts = assignMiddleLayouts(middleCount)
+    for (let i = 0; i < middleCount; i++) {
+      lines.push(`Slide ${i + 2}: "${middleLayouts[i]}" — unique angle/point, different content from other slides`)
+    }
+    lines.push(`Slide ${n}: "cta" — call to action`)
+  }
+
+  return lines.join("\n")
+}
+
+/**
+ * Distributes layouts across middle slides to ensure variety while
+ * explicitly allowing repeats when there are many slides.
+ */
+function assignMiddleLayouts(count: number): string[] {
+  // Priority order for the first pass
+  const palette = ["content", "list", "bigNumber", "content", "quote", "split", "content", "list", "content", "split"]
+  const layouts: string[] = []
+
+  for (let i = 0; i < count; i++) {
+    layouts.push(palette[i % palette.length])
+  }
+
+  return layouts
 }

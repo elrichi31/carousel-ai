@@ -1,10 +1,13 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Geist, Geist_Mono, Playfair_Display, Space_Grotesk, Sora } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
+const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
+const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' })
+const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space' })
+const sora = Sora({ subsets: ['latin'], variable: '--font-sora' })
 
 export const metadata: Metadata = {
   title: 'Carousel AI - Create Stunning Carousels with AI',
@@ -35,7 +38,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${geist.variable} ${geistMono.variable} ${playfair.variable} ${spaceGrotesk.variable} ${sora.variable}`}
+    >
       <body className="font-sans antialiased">
         {children}
         <Analytics />

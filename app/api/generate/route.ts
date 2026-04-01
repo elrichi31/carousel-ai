@@ -29,39 +29,60 @@ export async function POST(request: Request) {
     const systemPrompt = buildSystemPrompt()
     const userPrompt = buildUserPrompt(formData, brand)
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.4,
-      max_tokens: 4500,
-      response_format: { type: "json_object" },
-    })
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ]
 
-    const content = completion.choices[0]?.message?.content
-    if (!content) {
-      return NextResponse.json({ error: "No response from AI" }, { status: 500 })
+    let parsed: { slides: Record<string, unknown>[]; caption?: unknown } | null = null
+
+    // Up to 2 attempts — if slide count is wrong, ask the model to fix it
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages,
+        temperature: 0.4,
+        max_tokens: 4500,
+        response_format: { type: "json_object" },
+      })
+
+      const content = completion.choices[0]?.message?.content
+      if (!content) {
+        return NextResponse.json({ error: "No response from AI" }, { status: 500 })
+      }
+
+      parsed = JSON.parse(content)
+
+      if (!Array.isArray(parsed?.slides)) {
+        return NextResponse.json(
+          { error: "AI returned invalid format — missing slides array" },
+          { status: 500 }
+        )
+      }
+
+      const got = parsed.slides.length
+      const want = formData.slideCount
+
+      if (got === want) break
+
+      if (attempt === 1) {
+        // Ask the model to correct itself
+        messages.push({ role: "assistant", content })
+        messages.push({
+          role: "user",
+          content: `You returned ${got} slides but I asked for EXACTLY ${want}. Please return the full JSON again with exactly ${want} slides — add or remove slides as needed to reach that number. Keep the same "cover" first and "cta" last.`,
+        })
+      }
     }
 
-    const parsed = JSON.parse(content)
-
-    if (!Array.isArray(parsed.slides)) {
-      return NextResponse.json(
-        { error: "AI returned invalid format — missing slides array" },
-        { status: 500 }
-      )
-    }
-
-    const slidesWithIds = parsed.slides.map(
+    const slidesWithIds = parsed!.slides.map(
       (slide: Record<string, unknown>, index: number) => ({
         ...slide,
         id: `${Date.now()}-${index}`,
       })
     )
 
-    const caption = parsed.caption ?? {
+    const caption = parsed!.caption ?? {
       text: `${formData.topic} 🚀`,
       hashtags: [],
     }
