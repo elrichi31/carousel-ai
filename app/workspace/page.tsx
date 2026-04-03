@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 
 import { Header } from "@/components/header"
 import { InputPanel } from "@/components/input-panel"
 import { CarouselPreview } from "@/components/carousel-preview"
 import { EditorPanel } from "@/components/editor-panel"
+import { SlideRenderer } from "@/components/slide-renderer"
 import { useBrand } from "@/hooks/use-brand"
 import { mockSlides } from "@/lib/mock-data"
 import type { Slide, SlideLayout, CarouselFormData, PostCaption } from "@/lib/types"
@@ -15,8 +16,11 @@ export default function WorkspacePage() {
   const [slides, setSlides] = useState<Slide[]>(mockSlides)
   const [activeSlide, setActiveSlide] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isRegenerating, setIsRegenerating] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [caption, setCaption] = useState<PostCaption | null>(null)
+  const exportContainerRef = useRef<HTMLDivElement>(null)
   const { brand, updateBrand, clearBrand } = useBrand()
 
   const [formData, setFormData] = useState<CarouselFormData>({
@@ -92,8 +96,71 @@ export default function WorkspacePage() {
     )
   }
 
-  const handleRegenerateSlide = () => {
-    console.log("Regenerating slide", activeSlide)
+  const handleRegenerateSlide = async () => {
+    if (!formData.topic.trim()) {
+      setError("Enter a topic first to regenerate a slide.")
+      return
+    }
+    setIsRegenerating(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/regenerate-slide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slideIndex: activeSlide,
+          totalSlides: slides.length,
+          currentLayout: currentSlide.layout,
+          formData,
+          brand: brand.name || brand.logoUrl ? brand : null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || "Failed to regenerate slide")
+        return
+      }
+      setSlides((prev) =>
+        prev.map((slide, i) =>
+          i === activeSlide ? { ...data.slide, id: slide.id } : slide
+        )
+      )
+    } catch {
+      setError("Network error. Check your connection and try again.")
+    } finally {
+      setIsRegenerating(false)
+    }
+  }
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const { domToPng } = await import("modern-screenshot")
+      const container = exportContainerRef.current
+      if (!container) return
+
+      const slideEls = container.querySelectorAll<HTMLElement>("[data-export-slide]")
+      for (let i = 0; i < slideEls.length; i++) {
+        const dataUrl = await domToPng(slideEls[i], {
+          width: 1080,
+          height: 1350,
+          scale: 1,
+          backgroundColor: "#111111",
+        })
+        const a = document.createElement("a")
+        a.href = dataUrl
+        a.download = `slide-${i + 1}.png`
+        a.click()
+        if (i < slideEls.length - 1) {
+          await new Promise((r) => setTimeout(r, 400))
+        }
+      }
+    } catch (err) {
+      console.error("Export error:", err)
+      setError("Export failed. Try again.")
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const handleDuplicateSlide = () => {
@@ -155,10 +222,40 @@ export default function WorkspacePage() {
               onBgStyleChange={setSelectedBgStyle}
               onRegenerateSlide={handleRegenerateSlide}
               onDuplicateSlide={handleDuplicateSlide}
+              onExport={handleExport}
+              isRegenerating={isRegenerating}
+              isExporting={isExporting}
             />
           </div>
         </div>
       </main>
+
+      {/* Hidden export container — slides rendered at preview size (360×450)
+          then CSS-scaled 3× to produce 1080×1350 export images. This keeps
+          text and spacing proportional to what the user sees in the preview. */}
+      <div
+        ref={exportContainerRef}
+        aria-hidden
+        style={{ position: "absolute", left: "-9999px", top: 0, pointerEvents: "none" }}
+      >
+        {slides.map((slide) => (
+          <div
+            key={slide.id}
+            data-export-slide
+            style={{ width: 1080, height: 1350, overflow: "hidden", flexShrink: 0 }}
+          >
+            <div style={{ width: 360, height: 450, transform: "scale(3)", transformOrigin: "top left" }}>
+              <SlideRenderer
+                slide={slide}
+                brand={brand}
+                activePrimary={activePrimary}
+                fontTheme={selectedFont}
+                bgStyle={selectedBgStyle}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

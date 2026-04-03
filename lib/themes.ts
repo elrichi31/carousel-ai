@@ -91,3 +91,53 @@ export function buildBgStyle(primary: string, style: BgStyleId, startPct: number
       return { backgroundColor: dark, backgroundImage: base }
   }
 }
+
+/**
+ * Export-safe version of buildBgStyle.
+ * html2canvas cannot parse `color-mix()` or `oklch()`, so this version
+ * uses plain `rgba()` values instead. Requires a resolved hex primary color.
+ */
+export function buildBgStyleExport(hexPrimary: string, style: BgStyleId, startPct: number, endPct: number): Record<string, string> {
+  const r = parseInt(hexPrimary.slice(1, 3), 16)
+  const g = parseInt(hexPrimary.slice(3, 5), 16)
+  const b = parseInt(hexPrimary.slice(5, 7), 16)
+  const rgba = (pct: number) => `rgba(${r}, ${g}, ${b}, ${(pct / 100).toFixed(2)})`
+
+  const base = `linear-gradient(to bottom right, ${rgba(startPct)}, ${rgba(endPct)})`
+  const dark = '#111111'
+
+  switch (style) {
+    case 'gradient':
+      return { backgroundColor: dark, backgroundImage: base }
+    case 'lines':
+      return {
+        backgroundColor: dark,
+        backgroundImage: `repeating-linear-gradient(-45deg, ${rgba(6)} 0px, ${rgba(6)} 1px, transparent 1px, transparent 12px), ${base}`,
+      }
+    case 'dots':
+      return {
+        backgroundColor: dark,
+        backgroundImage: `radial-gradient(${rgba(10)} 1px, transparent 1px), ${base}`,
+        backgroundSize: '16px 16px, 100% 100%',
+      }
+    case 'grid':
+      return {
+        backgroundColor: dark,
+        backgroundImage: `linear-gradient(${rgba(5)} 1px, transparent 1px), linear-gradient(90deg, ${rgba(5)} 1px, transparent 1px), ${base}`,
+        backgroundSize: '24px 24px, 24px 24px, 100% 100%',
+      }
+    case 'noise':
+      return {
+        backgroundColor: dark,
+        backgroundImage: `repeating-linear-gradient(0deg, ${rgba(3)} 0px, transparent 1px, transparent 2px), repeating-linear-gradient(90deg, ${rgba(3)} 0px, transparent 1px, transparent 3px), ${base}`,
+        backgroundSize: '3px 3px, 3px 3px, 100% 100%',
+      }
+    case 'radial':
+      return {
+        backgroundColor: dark,
+        backgroundImage: `radial-gradient(ellipse at 30% 20%, ${rgba(startPct + 10)} 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, ${rgba(startPct)} 0%, transparent 50%), ${base}`,
+      }
+    default:
+      return { backgroundColor: dark, backgroundImage: base }
+  }
+}

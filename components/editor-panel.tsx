@@ -4,7 +4,7 @@ import { useRef, useState } from "react"
 import {
   LayoutGrid, Palette, Type, RefreshCw, Copy, Download,
   AlignCenter, AlignLeft, Columns2, Hash, Quote,
-  MousePointerClick, ListChecks, Plus, Wallpaper, ChevronDown,
+  MousePointerClick, ListChecks, Plus, Wallpaper, ChevronDown, X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -20,7 +20,7 @@ import {
   colorThemes, fontThemes, bgStyles, buildBgStyle, CUSTOM_COLOR_ID,
   type ColorThemeId, type FontThemeId, type BgStyleId,
 } from "@/lib/themes"
-import { coverVariants, ctaVariants, SlideVariantPreview } from "@/components/slide-renderer"
+import { coverVariants, ctaVariants, contentVariants, listVariants, bigNumberVariants, quoteVariants, splitVariants, SlideVariantPreview } from "@/components/slide-renderer"
 
 const layoutOptions: { id: SlideLayout; label: string; icon: typeof AlignCenter }[] = [
   { id: "cover",     label: "Cover",   icon: AlignCenter      },
@@ -50,6 +50,9 @@ interface EditorPanelProps {
   onBgStyleChange: (style: BgStyleId) => void
   onRegenerateSlide: () => void
   onDuplicateSlide: () => void
+  onExport: () => void
+  isRegenerating?: boolean
+  isExporting?: boolean
 }
 
 export function EditorPanel({
@@ -68,20 +71,36 @@ export function EditorPanel({
   onBgStyleChange,
   onRegenerateSlide,
   onDuplicateSlide,
+  onExport,
+  isRegenerating = false,
+  isExporting = false,
 }: EditorPanelProps) {
   const colorInputRef = useRef<HTMLInputElement>(null)
-  const [variantPickerOpen, setVariantPickerOpen] = useState<'cover' | 'cta' | null>(null)
+  const [variantPickerOpen, setVariantPickerOpen] = useState<string | null>(null)
 
   const selectedLayout = currentSlide.layout
-  const currentVariant = currentSlide.layoutVariant ?? 'centered'
+  const currentVariant = currentSlide.layoutVariant ?? 'default'
 
   // Cover is locked to first slide, CTA to last slide
   const isCoverSlide = slideIndex === 0
   const isCtaSlide = slideIndex === totalSlides - 1
   const isLockedLayout = isCoverSlide || isCtaSlide
 
-  const variants = isCoverSlide ? coverVariants : isCtaSlide ? ctaVariants : []
-  const pickerKey = isCoverSlide ? 'cover' : 'cta'
+  function getLayoutVariants(layout: typeof selectedLayout) {
+    switch (layout) {
+      case 'cover':      return coverVariants
+      case 'cta':        return ctaVariants
+      case 'content':    return contentVariants
+      case 'list':       return listVariants
+      case 'bigNumber':  return bigNumberVariants
+      case 'quote':      return quoteVariants
+      case 'split':      return splitVariants
+      default:           return []
+    }
+  }
+
+  const variants = getLayoutVariants(selectedLayout)
+  const variantLabel = variants.find(v => v.id === currentVariant)?.label ?? currentVariant
 
   return (
     <div className="flex h-full flex-col">
@@ -100,80 +119,64 @@ export function EditorPanel({
           </Label>
 
           {isLockedLayout ? (
-            /* Locked layout: show active layout + variant picker button */
+            /* Locked layout: show active layout + variant picker */
             <div className="space-y-2">
               <div className="flex items-center gap-2 rounded-lg border border-primary bg-primary/10 px-3 py-2 text-xs text-foreground">
                 {isCoverSlide ? <AlignCenter className="h-3.5 w-3.5" /> : <MousePointerClick className="h-3.5 w-3.5" />}
                 <span className="flex-1">{isCoverSlide ? 'Cover' : 'CTA'}</span>
                 <span className="text-[10px] text-muted-foreground">locked</span>
               </div>
-
-              {/* Variant picker toggle */}
-              <button
-                onClick={() => setVariantPickerOpen(v => v === pickerKey ? null : pickerKey)}
-                className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-muted/50 px-3 py-2 text-xs text-muted-foreground hover:border-border hover:text-foreground transition-all"
-              >
-                <span>Estilo: <span className="text-foreground font-medium capitalize">{currentVariant}</span></span>
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${variantPickerOpen === pickerKey ? 'rotate-180' : ''}`} />
-              </button>
-
-              {/* Variant grid */}
-              {variantPickerOpen === pickerKey && (
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  {variants.map((v) => {
-                    const previewSlide: Slide = { ...currentSlide, layoutVariant: v.id }
+              <VariantPicker
+                layout={selectedLayout}
+                variants={variants}
+                currentVariant={currentVariant}
+                variantLabel={variantLabel}
+                open={variantPickerOpen === selectedLayout}
+                onToggle={() => setVariantPickerOpen(v => v === selectedLayout ? null : selectedLayout)}
+                onSelect={(id) => { onVariantChange(id); setVariantPickerOpen(null) }}
+                slide={currentSlide}
+                primary={activePrimary}
+                bgStyle={selectedBgStyle}
+              />
+            </div>
+          ) : (
+            /* Normal layout grid + variant picker */
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                {layoutOptions
+                  .filter(o => o.id !== 'cover' && o.id !== 'cta')
+                  .map((option) => {
+                    const Icon = option.icon
                     return (
                       <button
-                        key={v.id}
-                        onClick={() => {
-                          onVariantChange(v.id)
-                          setVariantPickerOpen(null)
-                        }}
-                        className={`flex flex-col gap-1.5 rounded-lg border p-1.5 transition-all ${
-                          currentVariant === v.id
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border/50 bg-muted/30 hover:border-border'
+                        key={option.id}
+                        onClick={() => { onLayoutChange(option.id); setVariantPickerOpen(null) }}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all ${
+                          selectedLayout === option.id
+                            ? 'border-primary bg-primary/10 text-foreground'
+                            : 'border-border/50 bg-muted/50 text-muted-foreground hover:border-border hover:text-foreground'
                         }`}
                       >
-                        {/* Mini slide preview */}
-                        <div className="aspect-[4/5] w-full overflow-hidden rounded-md">
-                          <SlideVariantPreview
-                            slide={previewSlide}
-                            primary={activePrimary}
-                            bgStyle={selectedBgStyle}
-                          />
-                        </div>
-                        <span className={`text-center text-[10px] ${currentVariant === v.id ? 'text-primary' : 'text-muted-foreground'}`}>
-                          {v.label}
-                        </span>
+                        <Icon className="h-3.5 w-3.5" />
+                        {option.label}
                       </button>
                     )
                   })}
-                </div>
+              </div>
+              {variants.length > 0 && (
+                <VariantPicker
+                  layout={selectedLayout}
+                  variants={variants}
+                  currentVariant={currentVariant}
+                  variantLabel={variantLabel}
+                  open={variantPickerOpen === selectedLayout}
+                  onToggle={() => setVariantPickerOpen(v => v === selectedLayout ? null : selectedLayout)}
+                  onSelect={(id) => { onVariantChange(id); setVariantPickerOpen(null) }}
+                  slide={currentSlide}
+                  primary={activePrimary}
+                  bgStyle={selectedBgStyle}
+                />
               )}
-            </div>
-          ) : (
-            /* Normal layout grid */
-            <div className="grid grid-cols-2 gap-2">
-              {layoutOptions
-                .filter(o => o.id !== 'cover' && o.id !== 'cta')
-                .map((option) => {
-                  const Icon = option.icon
-                  return (
-                    <button
-                      key={option.id}
-                      onClick={() => onLayoutChange(option.id)}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all ${
-                        selectedLayout === option.id
-                          ? 'border-primary bg-primary/10 text-foreground'
-                          : 'border-border/50 bg-muted/50 text-muted-foreground hover:border-border hover:text-foreground'
-                      }`}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {option.label}
-                    </button>
-                  )
-                })}
             </div>
           )}
         </div>
@@ -205,24 +208,33 @@ export function EditorPanel({
               )
             })}
 
-            {selectedColor === CUSTOM_COLOR_ID && (
+            {selectedColor === CUSTOM_COLOR_ID ? (
+              <div className="group relative">
+                <button
+                  onClick={() => colorInputRef.current?.click()}
+                  title="Edit custom color"
+                  className="h-7 w-7 rounded-full ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110 transition-all"
+                  style={{ backgroundColor: customColor }}
+                >
+                  <span className="sr-only">Custom</span>
+                </button>
+                <button
+                  onClick={() => onColorChange('green')}
+                  title="Remove custom color"
+                  className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground group-hover:flex"
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </div>
+            ) : (
               <button
                 onClick={() => colorInputRef.current?.click()}
-                title="Custom color"
-                className="h-7 w-7 rounded-full ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110 transition-all"
-                style={{ backgroundColor: customColor }}
+                title="Pick a custom color"
+                className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/40 hover:border-muted-foreground/80 hover:scale-105 transition-all"
               >
-                <span className="sr-only">Custom</span>
+                <Plus className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
             )}
-
-            <button
-              onClick={() => colorInputRef.current?.click()}
-              title="Pick a custom color"
-              className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/40 hover:border-muted-foreground/80 hover:scale-105 transition-all"
-            >
-              <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
 
             <input
               ref={colorInputRef}
@@ -231,30 +243,6 @@ export function EditorPanel({
               value={selectedColor === CUSTOM_COLOR_ID ? customColor : '#22c55e'}
               onChange={(e) => onColorChange(CUSTOM_COLOR_ID, e.target.value)}
             />
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap pt-1">
-            {(Object.keys(colorThemes) as ColorThemeId[])
-              .filter((id) => !PINNED.includes(id))
-              .map((id) => {
-                const theme = colorThemes[id]
-                const isActive = selectedColor === id
-                return (
-                  <button
-                    key={id}
-                    onClick={() => onColorChange(id)}
-                    title={theme.label}
-                    className={`h-5 w-5 rounded-full transition-all ${
-                      isActive
-                        ? 'ring-2 ring-foreground ring-offset-1 ring-offset-background scale-110'
-                        : 'opacity-50 hover:opacity-100 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: theme.primary }}
-                  >
-                    <span className="sr-only">{theme.label}</span>
-                  </button>
-                )
-              })}
           </div>
         </div>
 
@@ -304,21 +292,27 @@ export function EditorPanel({
 
         {/* Actions */}
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Actions</Label>
+          <Label className="text-xs text-muted-foreground">Slide Actions</Label>
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={onRegenerateSlide}
-              className="border-border/50 bg-transparent text-foreground hover:bg-muted"
+              disabled={isRegenerating}
+              className="border-border/50 bg-transparent text-foreground hover:bg-muted disabled:opacity-50"
             >
-              <RefreshCw className="mr-2 h-3.5 w-3.5" />
-              Regenerate
+              {isRegenerating ? (
+                <div className="mr-2 h-3.5 w-3.5 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+              ) : (
+                <RefreshCw className="mr-2 h-3.5 w-3.5" />
+              )}
+              {isRegenerating ? "..." : "Regenerate"}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={onDuplicateSlide}
+              title="Insert a copy of this slide after it"
               className="border-border/50 bg-transparent text-foreground hover:bg-muted"
             >
               <Copy className="mr-2 h-3.5 w-3.5" />
@@ -329,11 +323,79 @@ export function EditorPanel({
       </div>
 
       <div className="border-t border-border/50 p-4">
-        <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
-          <Download className="mr-2 h-4 w-4" />
-          Export Carousel
+        <Button
+          onClick={onExport}
+          disabled={isExporting}
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {isExporting ? (
+            <>
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+              Exporting...
+            </>
+          ) : (
+            <>
+              <Download className="mr-2 h-4 w-4" />
+              Export Carousel
+            </>
+          )}
         </Button>
       </div>
     </div>
+  )
+}
+
+// ─── Shared variant picker sub-component ─────────────────────────────────────
+
+function VariantPicker({
+  variants, currentVariant, variantLabel, open, onToggle, onSelect, slide, primary, bgStyle,
+}: {
+  layout: SlideLayout
+  variants: { id: string; label: string }[]
+  currentVariant: string
+  variantLabel: string
+  open: boolean
+  onToggle: () => void
+  onSelect: (id: string) => void
+  slide: Slide
+  primary: string
+  bgStyle: BgStyleId
+}) {
+  if (variants.length === 0) return null
+  return (
+    <>
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center justify-between rounded-lg border border-border/50 bg-muted/50 px-3 py-2 text-xs text-muted-foreground hover:border-border hover:text-foreground transition-all"
+      >
+        <span>Estilo: <span className="text-foreground font-medium capitalize">{variantLabel}</span></span>
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="grid grid-cols-2 gap-2 pt-1">
+          {variants.map((v) => {
+            const previewSlide: Slide = { ...slide, layoutVariant: v.id }
+            return (
+              <button
+                key={v.id}
+                onClick={() => onSelect(v.id)}
+                className={`flex flex-col gap-1.5 rounded-lg border p-1.5 transition-all ${
+                  currentVariant === v.id
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border/50 bg-muted/30 hover:border-border'
+                }`}
+              >
+                <div className="aspect-[4/5] w-full overflow-hidden rounded-md">
+                  <SlideVariantPreview slide={previewSlide} primary={primary} bgStyle={bgStyle} />
+                </div>
+                <span className={`text-center text-[10px] ${currentVariant === v.id ? 'text-primary' : 'text-muted-foreground'}`}>
+                  {v.label}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </>
   )
 }
