@@ -62,8 +62,8 @@ Do NOT include "id", "imageUrl", or "imagePosition" — the frontend handles tho
    - Required: quote (impactful, relevant), quoteAuthor (person, book, or org)
    - All other content fields: null
 
-6. **"split"** — Text-only split layout (no image needed).
-   - Required: title, content (shorter than "content" layout)
+6. **"split"** — Half text / half image. Use this when the carousel includes images.
+   - Required: title, content (shorter than "content" layout, 1-2 sentences)
    - All other content fields: null
 
 7. **"cta"** — ALWAYS last slide. Drives action.
@@ -126,13 +126,13 @@ export function buildUserPrompt(
   const n = formData.slideCount
 
   // Build an explicit numbered plan so the model can't miss or skip a slide
-  const slidePlan = buildSlidePlan(n)
+  const slidePlan = buildSlidePlan(n, formData.withImages)
 
   let prompt = `Generate an Instagram carousel with EXACTLY ${n} slides about: "${formData.topic}"
 
 Target audience: ${formData.audience}
 Tone: ${formData.tone}
-Visual style: ${formData.visualStyle}
+Visual style: ${formData.visualStyle}${formData.withImages ? `\nImages: YES — use "split" layout for at least 2 middle slides so each one gets a real photo` : ""}
 
 ## REQUIRED SLIDE PLAN — follow this exactly, ${n} slides total:
 ${slidePlan}
@@ -221,7 +221,7 @@ Make the content fresh — different angle or insight from the obvious take on t
  * Generates an explicit numbered slide plan so the model has no ambiguity
  * about how many slides to produce and which position each layout goes in.
  */
-function buildSlidePlan(n: number): string {
+function buildSlidePlan(n: number, withImages = false): string {
   const lines: string[] = []
 
   lines.push(`Slide 1: "cover" — hook the audience, big title + subtitle + emoji`)
@@ -234,7 +234,7 @@ function buildSlidePlan(n: number): string {
   } else {
     // Middle slides: n - 2 of them
     const middleCount = n - 2
-    const middleLayouts = assignMiddleLayouts(middleCount)
+    const middleLayouts = assignMiddleLayouts(middleCount, withImages)
     for (let i = 0; i < middleCount; i++) {
       lines.push(`Slide ${i + 2}: "${middleLayouts[i]}" — unique angle/point, different content from other slides`)
     }
@@ -248,14 +248,15 @@ function buildSlidePlan(n: number): string {
  * Distributes layouts across middle slides to ensure variety while
  * explicitly allowing repeats when there are many slides.
  */
-function assignMiddleLayouts(count: number): string[] {
-  // Priority order for the first pass
-  const palette = ["content", "list", "bigNumber", "content", "quote", "split", "content", "list", "content", "split"]
-  const layouts: string[] = []
+function assignMiddleLayouts(count: number, withImages = false): string[] {
+  // When images are requested, weave in more "split" slots
+  const palette = withImages
+    ? ["split", "content", "split", "list", "bigNumber", "split", "quote", "content", "split", "list"]
+    : ["content", "list", "bigNumber", "content", "quote", "split", "content", "list", "content", "split"]
 
+  const layouts: string[] = []
   for (let i = 0; i < count; i++) {
     layouts.push(palette[i % palette.length])
   }
-
   return layouts
 }

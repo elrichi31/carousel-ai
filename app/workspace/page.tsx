@@ -18,6 +18,7 @@ export default function WorkspacePage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [isImageLoading, setIsImageLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [caption, setCaption] = useState<PostCaption | null>(null)
   const exportContainerRef = useRef<HTMLDivElement>(null)
@@ -29,6 +30,8 @@ export default function WorkspacePage() {
     tone: "Professional",
     slideCount: 5,
     visualStyle: "Minimal",
+    withImages: false,
+    imageSource: "unsplash",
   })
 
   const [platform, setPlatform] = useState<Platform>("instagram")
@@ -75,9 +78,49 @@ export default function WorkspacePage() {
         return
       }
 
-      setSlides(data.slides)
+      const generatedSlides: Slide[] = data.slides
+      setSlides(generatedSlides)
       setActiveSlide(0)
       setCaption(data.caption ?? null)
+
+      // Auto-fetch images for split slides when the user opted in
+      if (formData.withImages) {
+        const slideIndices = generatedSlides
+          .map((s, i) => ({ slide: s, i }))
+          .filter(({ slide }) => slide.layout === "split")
+
+        if (slideIndices.length > 0) {
+          setIsImageLoading(true)
+          try {
+            const fetched = await Promise.all(
+              slideIndices.map(({ slide }) =>
+                fetch("/api/images", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    query: slide.title || formData.topic,
+                    source: formData.imageSource,
+                  }),
+                }).then((r) => r.json())
+              )
+            )
+            setSlides((prev) => {
+              const next = [...prev]
+              slideIndices.forEach(({ i }, idx) => {
+                const result = fetched[idx]
+                if (result?.url) {
+                  next[i] = { ...next[i], imageUrl: result.url, imagePrompt: result.prompt ?? undefined, imageSource: formData.imageSource }
+                }
+              })
+              return next
+            })
+          } catch {
+            // Images are non-critical — silently ignore fetch failures
+          } finally {
+            setIsImageLoading(false)
+          }
+        }
+      }
     } catch {
       setError("Network error. Check your connection and try again.")
     } finally {
@@ -171,6 +214,86 @@ export default function WorkspacePage() {
     setSlides(newSlides)
   }
 
+  /** Fetch an image from Unsplash or DALL-E and assign it to the active slide. */
+  const fetchImage = async (source: "unsplash" | "dalle") => {
+    const query = currentSlide.title || formData.topic
+    if (!query.trim()) {
+      setError("El slide necesita un título o un tema para buscar una imagen.")
+      return
+    }
+    setIsImageLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, source }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || "No se pudo obtener la imagen.")
+        return
+      }
+      setSlides((prev) =>
+        prev.map((slide, i) =>
+          i === activeSlide
+            ? { ...slide, imageUrl: data.url, imagePrompt: data.prompt ?? undefined, imageSource: source }
+            : slide
+        )
+      )
+    } catch {
+      setError("Error de red al buscar la imagen.")
+    } finally {
+      setIsImageLoading(false)
+    }
+  }
+
+  const handleImageSearch = () => fetchImage("unsplash")
+  const handleImageGenerate = () => fetchImage("dalle")
+
+  const handleImageRemove = () => {
+    setSlides((prev) =>
+      prev.map((slide, i) =>
+        i === activeSlide
+          ? { ...slide, imageUrl: undefined, imagePrompt: undefined, imageSource: undefined }
+          : slide
+      )
+    )
+  }
+
+  const handleImageRegenerateWithPrompt = async (customPrompt: string) => {
+    const source = currentSlide.imageSource ?? "unsplash"
+    setIsImageLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: currentSlide.title || formData.topic,
+          source,
+          customPrompt,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || "No se pudo regenerar la imagen.")
+        return
+      }
+      setSlides((prev) =>
+        prev.map((slide, i) =>
+          i === activeSlide
+            ? { ...slide, imageUrl: data.url, imagePrompt: data.prompt ?? customPrompt, imageSource: source }
+            : slide
+        )
+      )
+    } catch {
+      setError("Error de red al regenerar la imagen.")
+    } finally {
+      setIsImageLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
@@ -227,8 +350,13 @@ export default function WorkspacePage() {
               onRegenerateSlide={handleRegenerateSlide}
               onDuplicateSlide={handleDuplicateSlide}
               onExport={handleExport}
+              onImageSearch={handleImageSearch}
+              onImageGenerate={handleImageGenerate}
+              onImageRemove={handleImageRemove}
+              onImageRegenerateWithPrompt={handleImageRegenerateWithPrompt}
               isRegenerating={isRegenerating}
               isExporting={isExporting}
+              isImageLoading={isImageLoading}
             />
           </div>
         </div>

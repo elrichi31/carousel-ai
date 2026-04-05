@@ -42,10 +42,24 @@ function HighlightedTitle({ text, primary }: { text: string; primary: string }) 
   return <>{nodes}</>
 }
 
+// Layouts that have a full or half image — brand needs contrast treatment
+const IMAGE_LAYOUTS = new Set<string>(["imageOverlay"])
+
+function slideHasImage(slide: Slide) {
+  return (
+    !!slide.imageUrl &&
+    (IMAGE_LAYOUTS.has(slide.layout) ||
+      slide.layout === "split" ||
+      (slide.layout === "content" &&
+        (slide.layoutVariant === "image-right" || slide.layoutVariant === "image-left")))
+  )
+}
+
 export function SlideRenderer({ slide, brand, activePrimary, fontTheme = 'geist', bgStyle = 'gradient', bgBuilder = buildBgStyle }: SlideRendererProps) {
   const hasBrand = brand && (brand.logoUrl || brand.name)
   const primary = activePrimary ?? colorThemes.green.primary
   const fontFamily = fontThemes[fontTheme]?.family ?? fontThemes.geist.family
+  const hasImage = slideHasImage(slide)
 
   return (
     <div className="relative flex h-full flex-col" style={{ fontFamily }}>
@@ -53,13 +67,22 @@ export function SlideRenderer({ slide, brand, activePrimary, fontTheme = 'geist'
         {renderLayout(slide, primary, bgStyle, bgBuilder)}
       </div>
       {hasBrand && (
-        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2 px-4 py-3 pointer-events-none">
-          {brand.logoUrl && (
-            <img src={brand.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
-          )}
-          {brand.name && (
-            <span className="text-[10px] font-medium opacity-50">{brand.name}</span>
-          )}
+        /* Safe zone: ~14% from bottom keeps brand clear of TikTok/IG UI elements */
+        <div
+          className="absolute left-0 right-0 flex items-center justify-center pointer-events-none"
+          style={{ bottom: "14%" }}
+        >
+          <div
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1"
+            style={hasImage ? { backgroundColor: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" } : undefined}
+          >
+            {brand.logoUrl && (
+              <img src={brand.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain opacity-70" />
+            )}
+            {brand.name && (
+              <span className="text-[10px] font-medium opacity-70">{brand.name}</span>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -69,14 +92,15 @@ export function SlideRenderer({ slide, brand, activePrimary, fontTheme = 'geist'
 function renderLayout(slide: Slide, primary: string, bgStyle: BgStyleId, bgBuilder: BgBuilder) {
   const p = { slide, primary, bgStyle, bgBuilder }
   switch (slide.layout) {
-    case "cover":     return <CoverLayout     {...p} />
-    case "content":   return <ContentLayout   {...p} />
-    case "list":      return <ListLayout      {...p} />
-    case "bigNumber": return <BigNumberLayout {...p} />
-    case "quote":     return <QuoteLayout     {...p} />
-    case "split":     return <SplitLayout     {...p} />
-    case "cta":       return <CtaLayout       {...p} />
-    default:          return <ContentLayout   {...p} />
+    case "cover":        return <CoverLayout        {...p} />
+    case "content":      return <ContentLayout      {...p} />
+    case "list":         return <ListLayout         {...p} />
+    case "bigNumber":    return <BigNumberLayout    {...p} />
+    case "quote":        return <QuoteLayout        {...p} />
+    case "split":        return <SplitLayout        {...p} />
+    case "imageOverlay": return <ImageOverlayLayout {...p} />
+    case "cta":          return <CtaLayout          {...p} />
+    default:             return <ContentLayout      {...p} />
   }
 }
 
@@ -505,6 +529,62 @@ function SplitLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps) {
   )
 }
 
+// ─── ImageOverlay ─────────────────────────────────────────────────────────────
+function ImageOverlayLayout({ slide, primary }: LayoutProps) {
+  const variant = slide.layoutVariant ?? 'bottom'
+
+  const overlayClass =
+    variant === 'top'    ? "bg-gradient-to-b from-black/80 via-black/40 to-black/10" :
+    variant === 'center' ? "bg-black/55" :
+    /* bottom */           "bg-gradient-to-t from-black/85 via-black/45 to-black/10"
+
+  const contentClass =
+    variant === 'top'    ? "justify-start pt-10" :
+    variant === 'center' ? "justify-center items-center text-center" :
+    /* bottom */           "justify-end pb-10"
+
+  return (
+    <div className="relative flex h-full text-white">
+      {/* Background image */}
+      {slide.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={slide.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted/30 gap-2 opacity-30">
+          <ImageIcon className="h-10 w-10" />
+          <span className="text-xs">Image</span>
+        </div>
+      )}
+
+      {/* Dark overlay */}
+      <div className={`absolute inset-0 ${overlayClass}`} />
+
+      {/* Accent line */}
+      <div className="absolute left-8 top-0 bottom-0 w-px opacity-60" style={{ backgroundColor: primary }} />
+
+      {/* Content */}
+      <div className={`relative z-10 flex h-full flex-col px-10 ${contentClass}`}>
+        {slide.emoji && variant !== 'bottom' && (
+          <span className="mb-3 text-4xl">{slide.emoji}</span>
+        )}
+        {slide.title && (
+          <h2 className="text-balance text-xl font-bold leading-tight drop-shadow-md">
+            <HighlightedTitle text={slide.title} primary={primary} />
+          </h2>
+        )}
+        {slide.content && (
+          <p className="mt-3 text-pretty text-sm leading-relaxed opacity-85 drop-shadow-sm max-w-[90%]">
+            {slide.content}
+          </p>
+        )}
+        {slide.emoji && variant === 'bottom' && (
+          <span className="mt-4 text-3xl">{slide.emoji}</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Exported variant metadata (used by editor panel) ────────────────────────
 
 export const coverVariants: { id: string; label: string }[] = [
@@ -548,6 +628,12 @@ export const quoteVariants: { id: string; label: string }[] = [
 export const splitVariants: { id: string; label: string }[] = [
   { id: 'image-right', label: 'Img Derecha'    },
   { id: 'image-left',  label: 'Img Izquierda'  },
+]
+
+export const imageOverlayVariants: { id: string; label: string }[] = [
+  { id: 'bottom',  label: 'Texto abajo'   },
+  { id: 'center',  label: 'Texto centro'  },
+  { id: 'top',     label: 'Texto arriba'  },
 ]
 
 /** Renders a slide at a small fixed size for use in pickers. */

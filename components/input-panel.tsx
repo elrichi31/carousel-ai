@@ -1,9 +1,8 @@
 "use client"
 
-import { Sparkles, ChevronDown } from "lucide-react"
+import { Sparkles, ChevronDown, ImageIcon, Search } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -34,6 +33,8 @@ const defaultFormData: CarouselFormData = {
   tone: "Professional",
   slideCount: 5,
   visualStyle: "Minimal",
+  withImages: false,
+  imageSource: "unsplash",
 }
 
 export function InputPanel({
@@ -94,12 +95,14 @@ export function InputPanel({
           <Label htmlFor="topic" className="text-xs text-muted-foreground">
             Topic
           </Label>
-          <Input
+          <textarea
             id="topic"
-            placeholder="e.g., 5 ataques de ciberseguridad"
+            placeholder="e.g., 5 ataques de ciberseguridad más comunes y cómo protegerte de ellos en 2025..."
             value={formData.topic}
             onChange={(e) => onFormChange({ topic: e.target.value })}
-            className="border-border/50 bg-muted/50 text-foreground placeholder:text-muted-foreground focus-visible:ring-primary"
+            rows={3}
+            className="w-full resize-none rounded-md border border-border/50 bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50 overflow-y-auto"
+            style={{ maxHeight: "9rem" }}
           />
         </div>
 
@@ -187,6 +190,73 @@ export function InputPanel({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Images */}
+        <div className="space-y-3">
+          <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <ImageIcon className="h-3.5 w-3.5" />
+            Images
+          </Label>
+          <div className="flex rounded-lg border border-border/50 bg-muted/30 overflow-hidden">
+            <button
+              onClick={() => onFormChange({ withImages: false })}
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                !formData.withImages
+                  ? "bg-primary/10 text-foreground border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Sin imágenes
+            </button>
+            <button
+              onClick={() => onFormChange({ withImages: true })}
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                formData.withImages
+                  ? "bg-primary/10 text-foreground border-b-2 border-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Con imágenes
+            </button>
+          </div>
+
+          {formData.withImages && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wide font-medium">Fuente de imágenes</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => onFormChange({ imageSource: "unsplash" })}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs transition-all ${
+                    formData.imageSource === "unsplash"
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border/50 bg-muted/50 text-muted-foreground hover:border-border hover:text-foreground"
+                  }`}
+                >
+                  <Search className="h-3.5 w-3.5" />
+                  <span>Unsplash</span>
+                  <span className="ml-auto rounded px-1 py-0.5 text-[9px] font-medium bg-green-500/15 text-green-600">Gratis</span>
+                </button>
+                <button
+                  onClick={() => onFormChange({ imageSource: "dalle" })}
+                  className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs transition-all ${
+                    formData.imageSource === "dalle"
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border/50 bg-muted/50 text-muted-foreground hover:border-border hover:text-foreground"
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>DALL-E 3</span>
+                  <span className="ml-auto rounded px-1 py-0.5 text-[9px] font-medium bg-yellow-500/15 text-yellow-600">IA</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
+                {formData.imageSource === "unsplash"
+                  ? "Fotos reales de Unsplash, gratis y sin atribución requerida."
+                  : "Imágenes únicas generadas por IA (~$0.04 por imagen)."}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,10 +1,11 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useRef, useState, useEffect } from "react"
 import {
   LayoutGrid, Palette, Type, RefreshCw, Copy, Download,
   AlignCenter, AlignLeft, Columns2, Hash, Quote,
   MousePointerClick, ListChecks, Plus, Wallpaper, ChevronDown, X,
+  ImageIcon, Sparkles, Search, Trash2, GalleryThumbnails,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -20,16 +21,17 @@ import {
   colorThemes, fontThemes, bgStyles, buildBgStyle, CUSTOM_COLOR_ID,
   type ColorThemeId, type FontThemeId, type BgStyleId,
 } from "@/lib/themes"
-import { coverVariants, ctaVariants, contentVariants, listVariants, bigNumberVariants, quoteVariants, splitVariants, SlideVariantPreview } from "@/components/slide-renderer"
+import { coverVariants, ctaVariants, contentVariants, listVariants, bigNumberVariants, quoteVariants, splitVariants, imageOverlayVariants, SlideVariantPreview } from "@/components/slide-renderer"
 
 const layoutOptions: { id: SlideLayout; label: string; icon: typeof AlignCenter }[] = [
-  { id: "cover",     label: "Cover",   icon: AlignCenter      },
-  { id: "content",   label: "Content", icon: AlignLeft        },
-  { id: "list",      label: "List",    icon: ListChecks       },
-  { id: "bigNumber", label: "Number",  icon: Hash             },
-  { id: "quote",     label: "Quote",   icon: Quote            },
-  { id: "split",     label: "Split",   icon: Columns2         },
-  { id: "cta",       label: "CTA",     icon: MousePointerClick },
+  { id: "cover",        label: "Cover",   icon: AlignCenter        },
+  { id: "content",      label: "Content", icon: AlignLeft          },
+  { id: "list",         label: "List",    icon: ListChecks         },
+  { id: "bigNumber",    label: "Number",  icon: Hash               },
+  { id: "quote",        label: "Quote",   icon: Quote              },
+  { id: "split",        label: "Split",   icon: Columns2           },
+  { id: "imageOverlay", label: "Overlay", icon: GalleryThumbnails  },
+  { id: "cta",          label: "CTA",     icon: MousePointerClick  },
 ]
 
 const PINNED: ColorThemeId[] = ["green", "blue", "purple", "orange"]
@@ -52,8 +54,13 @@ interface EditorPanelProps {
   onRegenerateSlide: () => void
   onDuplicateSlide: () => void
   onExport: () => void
+  onImageSearch: () => void
+  onImageGenerate: () => void
+  onImageRemove: () => void
+  onImageRegenerateWithPrompt: (prompt: string) => void
   isRegenerating?: boolean
   isExporting?: boolean
+  isImageLoading?: boolean
 }
 
 export function EditorPanel({
@@ -74,11 +81,22 @@ export function EditorPanel({
   onRegenerateSlide,
   onDuplicateSlide,
   onExport,
+  onImageSearch,
+  onImageGenerate,
+  onImageRemove,
+  onImageRegenerateWithPrompt,
   isRegenerating = false,
   isExporting = false,
+  isImageLoading = false,
 }: EditorPanelProps) {
   const colorInputRef = useRef<HTMLInputElement>(null)
   const [variantPickerOpen, setVariantPickerOpen] = useState<string | null>(null)
+  const [editedPrompt, setEditedPrompt] = useState(currentSlide.imagePrompt ?? "")
+
+  // Sync local prompt state when the active slide changes
+  useEffect(() => {
+    setEditedPrompt(currentSlide.imagePrompt ?? "")
+  }, [currentSlide.id, currentSlide.imagePrompt])
 
   const selectedLayout = currentSlide.layout
   const currentVariant = currentSlide.layoutVariant ?? 'default'
@@ -88,6 +106,13 @@ export function EditorPanel({
   const isCtaSlide = slideIndex === totalSlides - 1
   const isLockedLayout = isCoverSlide || isCtaSlide
 
+  // Show image section for layouts/variants that render an image
+  const supportsImage =
+    selectedLayout === "imageOverlay" ||
+    selectedLayout === "split" ||
+    (selectedLayout === "content" &&
+      (currentVariant === "image-right" || currentVariant === "image-left"))
+
   function getLayoutVariants(layout: typeof selectedLayout) {
     switch (layout) {
       case 'cover':      return coverVariants
@@ -96,8 +121,9 @@ export function EditorPanel({
       case 'list':       return listVariants
       case 'bigNumber':  return bigNumberVariants
       case 'quote':      return quoteVariants
-      case 'split':      return splitVariants
-      default:           return []
+      case 'split':        return splitVariants
+      case 'imageOverlay': return imageOverlayVariants
+      default:             return []
     }
   }
 
@@ -146,7 +172,7 @@ export function EditorPanel({
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
                 {layoutOptions
-                  .filter(o => o.id !== 'cover' && o.id !== 'cta')
+                  .filter(o => o.id !== 'cover' && o.id !== 'cta' && o.id !== 'imageOverlay')
                   .map((option) => {
                     const Icon = option.icon
                     return (
@@ -165,6 +191,21 @@ export function EditorPanel({
                     )
                   })}
               </div>
+              {/* Image Overlay — special layout, only shown when slide has an image */}
+              {currentSlide.imageUrl && (
+                <button
+                  onClick={() => { onLayoutChange("imageOverlay"); setVariantPickerOpen(null) }}
+                  className={`col-span-2 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-all ${
+                    selectedLayout === "imageOverlay"
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border/50 bg-muted/50 text-muted-foreground hover:border-border hover:text-foreground"
+                  }`}
+                >
+                  <GalleryThumbnails className="h-3.5 w-3.5" />
+                  Imagen con texto encima
+                </button>
+              )}
+
               {variants.length > 0 && (
                 <VariantPicker
                   layout={selectedLayout}
@@ -323,6 +364,133 @@ export function EditorPanel({
             ))}
           </div>
         </div>
+
+        {/* Image */}
+        {supportsImage && (
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <ImageIcon className="h-3.5 w-3.5" />
+              Image
+            </Label>
+
+            {currentSlide.imageUrl ? (
+              /* Preview + actions when an image exists */
+              <div className="space-y-2">
+                <div className="relative overflow-hidden rounded-lg border border-border/50 bg-muted/30" style={{ aspectRatio: "3/4" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={currentSlide.imageUrl}
+                    alt="Slide image"
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    onClick={onImageRemove}
+                    title="Remove image"
+                    className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm hover:bg-black/80 transition-colors"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+                {/* Editable prompt / keywords box */}
+                {currentSlide.imagePrompt !== undefined && (
+                  <div className="rounded-lg border border-border/50 bg-muted/30 p-2.5 space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      {currentSlide.imageSource === "dalle" ? (
+                        <Sparkles className="h-2.5 w-2.5 text-muted-foreground/50 flex-shrink-0" />
+                      ) : (
+                        <Search className="h-2.5 w-2.5 text-muted-foreground/50 flex-shrink-0" />
+                      )}
+                      <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                        {currentSlide.imageSource === "dalle" ? "Prompt generado" : "Keywords de búsqueda"}
+                      </p>
+                    </div>
+                    <textarea
+                      value={editedPrompt}
+                      onChange={(e) => setEditedPrompt(e.target.value)}
+                      rows={3}
+                      className="w-full resize-none rounded-md border border-border/50 bg-background/50 px-2 py-1.5 text-[10px] leading-relaxed text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-1 focus:ring-primary/50 overflow-y-auto"
+                      style={{ maxHeight: "7rem" }}
+                      placeholder="Edita el prompt y regenera..."
+                    />
+                    <button
+                      onClick={() => onImageRegenerateWithPrompt(editedPrompt)}
+                      disabled={isImageLoading || !editedPrompt.trim()}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 py-1.5 text-[10px] font-medium text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                    >
+                      {isImageLoading ? (
+                        <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+                      ) : (
+                        <RefreshCw className="h-3 w-3" />
+                      )}
+                      {isImageLoading ? "Generando..." : "Regenerar con este prompt"}
+                    </button>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={onImageSearch}
+                    disabled={isImageLoading}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-border/50 bg-muted/50 px-2 py-2 text-xs text-muted-foreground hover:border-border hover:text-foreground transition-all disabled:opacity-50"
+                  >
+                    {isImageLoading ? (
+                      <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+                    ) : (
+                      <Search className="h-3 w-3" />
+                    )}
+                    Unsplash
+                  </button>
+                  <button
+                    onClick={onImageGenerate}
+                    disabled={isImageLoading}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-border/50 bg-muted/50 px-2 py-2 text-xs text-muted-foreground hover:border-border hover:text-foreground transition-all disabled:opacity-50"
+                  >
+                    {isImageLoading ? (
+                      <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
+                    ) : (
+                      <Sparkles className="h-3 w-3" />
+                    )}
+                    AI
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Empty state — no image yet */
+              <div className="space-y-2">
+                <div className="flex items-center justify-center rounded-lg border border-dashed border-border/50 bg-muted/20 py-6">
+                  <div className="flex flex-col items-center gap-1.5 text-muted-foreground/50">
+                    <ImageIcon className="h-6 w-6" />
+                    <span className="text-[10px]">Sin imagen</span>
+                  </div>
+                </div>
+                <button
+                  onClick={onImageSearch}
+                  disabled={isImageLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-border/50 bg-muted/50 py-2.5 text-xs text-muted-foreground hover:border-border hover:text-foreground transition-all disabled:opacity-50"
+                >
+                  {isImageLoading ? (
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border border-current border-t-transparent" />
+                  ) : (
+                    <Search className="h-3.5 w-3.5" />
+                  )}
+                  {isImageLoading ? "Buscando..." : "Buscar en Unsplash"}
+                </button>
+                <button
+                  onClick={onImageGenerate}
+                  disabled={isImageLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-border/50 bg-muted/50 py-2.5 text-xs text-muted-foreground hover:border-border hover:text-foreground transition-all disabled:opacity-50"
+                >
+                  {isImageLoading ? (
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border border-current border-t-transparent" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  {isImageLoading ? "Generando..." : "Generar con IA"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="space-y-2">
