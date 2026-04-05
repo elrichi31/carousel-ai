@@ -43,6 +43,7 @@ interface EditorPanelProps {
   selectedFont: FontThemeId
   selectedBgStyle: BgStyleId
   activePrimary: string
+  brandColors?: string[]
   onLayoutChange: (layout: SlideLayout) => void
   onVariantChange: (variant: string) => void
   onColorChange: (color: ColorThemeId | typeof CUSTOM_COLOR_ID, hex?: string) => void
@@ -64,6 +65,7 @@ export function EditorPanel({
   selectedFont,
   selectedBgStyle,
   activePrimary,
+  brandColors = [],
   onLayoutChange,
   onVariantChange,
   onColorChange,
@@ -208,33 +210,65 @@ export function EditorPanel({
               )
             })}
 
-            {selectedColor === CUSTOM_COLOR_ID ? (
-              <div className="group relative">
+            {/* Brand colors extracted from logo */}
+            {brandColors.length > 0 && (
+              <>
+                <div className="h-5 w-px bg-border/60 mx-0.5" />
+                {brandColors.map((hex, i) => {
+                  const isActive = selectedColor === CUSTOM_COLOR_ID && customColor === hex
+                  return (
+                    <button
+                      key={`brand-${i}`}
+                      onClick={() => onColorChange(CUSTOM_COLOR_ID, hex)}
+                      title={`Brand: ${hex}`}
+                      className={`h-7 w-7 rounded-full transition-all border border-border/30 ${
+                        isActive
+                          ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110'
+                          : 'opacity-80 hover:opacity-100 hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: hex }}
+                    >
+                      <span className="sr-only">Brand color {hex}</span>
+                    </button>
+                  )
+                })}
+              </>
+            )}
+
+            {/* Custom color picker — hide the active swatch when a brand color is selected */}
+            {(() => {
+              const isBrandColor = selectedColor === CUSTOM_COLOR_ID && brandColors.includes(customColor)
+              if (selectedColor === CUSTOM_COLOR_ID && !isBrandColor) {
+                return (
+                  <div className="group relative">
+                    <button
+                      onClick={() => colorInputRef.current?.click()}
+                      title="Edit custom color"
+                      className="h-7 w-7 rounded-full ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110 transition-all"
+                      style={{ backgroundColor: customColor }}
+                    >
+                      <span className="sr-only">Custom</span>
+                    </button>
+                    <button
+                      onClick={() => onColorChange('green')}
+                      title="Remove custom color"
+                      className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground group-hover:flex"
+                    >
+                      <X className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                )
+              }
+              return (
                 <button
                   onClick={() => colorInputRef.current?.click()}
-                  title="Edit custom color"
-                  className="h-7 w-7 rounded-full ring-2 ring-foreground ring-offset-2 ring-offset-background scale-110 transition-all"
-                  style={{ backgroundColor: customColor }}
+                  title="Pick a custom color"
+                  className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/40 hover:border-muted-foreground/80 hover:scale-105 transition-all"
                 >
-                  <span className="sr-only">Custom</span>
+                  <Plus className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
-                <button
-                  onClick={() => onColorChange('green')}
-                  title="Remove custom color"
-                  className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground group-hover:flex"
-                >
-                  <X className="h-2.5 w-2.5" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => colorInputRef.current?.click()}
-                title="Pick a custom color"
-                className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-dashed border-muted-foreground/40 hover:border-muted-foreground/80 hover:scale-105 transition-all"
-              >
-                <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            )}
+              )
+            })()}
 
             <input
               ref={colorInputRef}

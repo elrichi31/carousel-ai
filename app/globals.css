@@ -118,6 +118,16 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* TikTok-style animations */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 4s linear infinite;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

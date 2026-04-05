@@ -68,6 +68,9 @@ export interface BrandSettings {
   colors: string[]         // hex colors extracted from logo or picked manually
 }
 
+// Platform for posting
+export type Platform = "instagram" | "tiktok"
+
 // Form data for carousel generation
 export interface CarouselFormData {
   topic: string

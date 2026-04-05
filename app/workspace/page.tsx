@@ -9,7 +9,7 @@ import { EditorPanel } from "@/components/editor-panel"
 import { SlideRenderer } from "@/components/slide-renderer"
 import { useBrand } from "@/hooks/use-brand"
 import { mockSlides } from "@/lib/mock-data"
-import type { Slide, SlideLayout, CarouselFormData, PostCaption } from "@/lib/types"
+import type { Slide, SlideLayout, CarouselFormData, PostCaption, Platform } from "@/lib/types"
 import { colorThemes, CUSTOM_COLOR_ID, type ColorThemeId, type FontThemeId, type BgStyleId } from "@/lib/themes"
 
 export default function WorkspacePage() {
@@ -31,6 +31,7 @@ export default function WorkspacePage() {
     visualStyle: "Minimal",
   })
 
+  const [platform, setPlatform] = useState<Platform>("instagram")
   const [selectedColor, setSelectedColor] = useState<ColorThemeId | typeof CUSTOM_COLOR_ID>("green")
   const [customColor, setCustomColor] = useState<string>("#22c55e")
   const [selectedFont, setSelectedFont] = useState<FontThemeId>("geist")
@@ -201,6 +202,8 @@ export default function WorkspacePage() {
               activePrimary={activePrimary}
               fontTheme={selectedFont}
               bgStyle={selectedBgStyle}
+              platform={platform}
+              onPlatformChange={setPlatform}
             />
           </div>
 
@@ -215,6 +218,7 @@ export default function WorkspacePage() {
               selectedFont={selectedFont}
               selectedBgStyle={selectedBgStyle}
               activePrimary={activePrimary}
+              brandColors={brand.colors}
               onLayoutChange={handleLayoutChange}
               onVariantChange={handleVariantChange}
               onColorChange={handleColorChange}
