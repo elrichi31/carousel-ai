@@ -1,9 +1,5 @@
-import type { CarouselFormData, BrandSettings, SlideLayout } from "./types"
+import type { CarouselFormData, BrandSettings } from "@/lib/types"
 
-/**
- * Builds the system prompt for the carousel generation agent.
- * Uses a strict JSON object schema to eliminate hallucinations and malformed output.
- */
 export function buildSystemPrompt(): string {
   return `You are an expert Instagram carousel content creator. Your ONLY job is to output structured JSON — nothing else.
 
@@ -116,16 +112,8 @@ The "caption" object must have:
 6. Does "caption" have both "text" and "hashtags" fields?`
 }
 
-/**
- * Builds the user message with all the form parameters and brand context.
- */
-export function buildUserPrompt(
-  formData: CarouselFormData,
-  brand: BrandSettings | null
-): string {
+export function buildUserPrompt(formData: CarouselFormData, brand: BrandSettings | null): string {
   const n = formData.slideCount
-
-  // Build an explicit numbered plan so the model can't miss or skip a slide
   const slidePlan = buildSlidePlan(n, formData.withImages)
 
   let prompt = `Generate an Instagram carousel with EXACTLY ${n} slides about: "${formData.topic}"
@@ -137,94 +125,17 @@ Visual style: ${formData.visualStyle}${formData.withImages ? `\nImages: YES — 
 ## REQUIRED SLIDE PLAN — follow this exactly, ${n} slides total:
 ${slidePlan}
 
-IMPORTANT: layouts CAN repeat across middle slides (e.g. two "content" slides, two "list" slides) — just use completely different content, angle, and information for each one so they feel fresh.`
+IMPORTANT: layouts CAN repeat across middle slides — just use completely different content, angle, and information for each one so they feel fresh.`
 
-  if (brand?.name) {
-    prompt += `\n\nBrand: "${brand.name}" — reference it naturally in the CTA slide and caption.`
-  }
-
-  if (brand?.colors && brand.colors.length > 0) {
-    prompt += `\nBrand colors (reference only, do NOT use as backgroundColor/textColor): ${brand.colors.join(", ")}`
-  }
+  if (brand?.name) prompt += `\n\nBrand: "${brand.name}" — reference it naturally in the CTA slide and caption.`
+  if (brand?.colors?.length) prompt += `\nBrand colors (reference only, do NOT use as backgroundColor/textColor): ${brand.colors.join(", ")}`
 
   prompt += `\n\nReturn ONLY the JSON object with "slides" (array of exactly ${n} items) and "caption" keys.`
-
   return prompt
 }
 
-// ─── Single-slide regeneration prompts ───────────────────────────────────────
-
-export function buildSingleSlideSystemPrompt(): string {
-  return `You are an Instagram carousel slide writer. Return a SINGLE JSON object for ONE slide — not an array, not wrapped in "slides".
-
-## SCHEMA (all fields required, use null for unused ones):
-{
-  "layout": string,
-  "title": string | null,
-  "subtitle": string | null,
-  "content": string | null,
-  "emoji": string | null,
-  "listItems": [{ "emoji": string, "text": string }] | null,
-  "bigNumber": string | null,
-  "bigNumberLabel": string | null,
-  "quote": string | null,
-  "quoteAuthor": string | null,
-  "ctaText": string | null,
-  "ctaSubtext": string | null,
-  "backgroundColor": string,
-  "textColor": "text-foreground",
-  "accentColor": string | null
-}
-
-backgroundColor options: "bg-card" | "bg-gradient-to-br from-primary/20 to-primary/5" | "bg-gradient-to-br from-primary/15 to-primary/5"
-textColor: ALWAYS "text-foreground"
-Return ONLY the JSON object. No extra text.`
-}
-
-export function buildSingleSlideUserPrompt(
-  slideIndex: number,
-  totalSlides: number,
-  currentLayout: SlideLayout,
-  formData: CarouselFormData,
-  brand: BrandSettings | null
-): string {
-  const isFirst = slideIndex === 0
-  const isLast = slideIndex === totalSlides - 1
-
-  let layoutInstruction: string
-  if (isFirst) {
-    layoutInstruction = `This is slide 1 (the COVER). layout MUST be "cover". Required: title (max 10 words), subtitle (max 15 words), emoji. All other content fields: null.`
-  } else if (isLast) {
-    layoutInstruction = `This is the last slide (CTA). layout MUST be "cta". Required: ctaText, ctaSubtext, emoji. All other content fields: null.`
-  } else {
-    layoutInstruction = `This is a middle slide (position ${slideIndex + 1} of ${totalSlides}). Use layout "${currentLayout}" — keep the same type but generate completely new, fresh content. Choose the fields appropriate for "${currentLayout}".`
-  }
-
-  let prompt = `Generate a new Instagram carousel slide about: "${formData.topic}"
-Target audience: ${formData.audience}
-Tone: ${formData.tone}
-
-${layoutInstruction}
-
-Make the content fresh — different angle or insight from the obvious take on this topic.`
-
-  if (brand?.name) {
-    prompt += `\nBrand context: "${brand.name}"`
-  }
-
-  return prompt
-}
-
-// ─── Full-carousel prompt helpers ────────────────────────────────────────────
-
-/**
- * Generates an explicit numbered slide plan so the model has no ambiguity
- * about how many slides to produce and which position each layout goes in.
- */
 function buildSlidePlan(n: number, withImages = false): string {
-  const lines: string[] = []
-
-  lines.push(`Slide 1: "cover" — hook the audience, big title + subtitle + emoji`)
+  const lines: string[] = [`Slide 1: "cover" — hook the audience, big title + subtitle + emoji`]
 
   if (n === 2) {
     lines.push(`Slide 2: "cta" — call to action`)
@@ -232,11 +143,10 @@ function buildSlidePlan(n: number, withImages = false): string {
     lines.push(`Slide 2: "content" or "list" — main point`)
     lines.push(`Slide 3: "cta" — call to action`)
   } else {
-    // Middle slides: n - 2 of them
     const middleCount = n - 2
-    const middleLayouts = assignMiddleLayouts(middleCount, withImages)
+    const layouts = assignMiddleLayouts(middleCount, withImages)
     for (let i = 0; i < middleCount; i++) {
-      lines.push(`Slide ${i + 2}: "${middleLayouts[i]}" — unique angle/point, different content from other slides`)
+      lines.push(`Slide ${i + 2}: "${layouts[i]}" — unique angle/point, different content from other slides`)
     }
     lines.push(`Slide ${n}: "cta" — call to action`)
   }
@@ -244,19 +154,9 @@ function buildSlidePlan(n: number, withImages = false): string {
   return lines.join("\n")
 }
 
-/**
- * Distributes layouts across middle slides to ensure variety while
- * explicitly allowing repeats when there are many slides.
- */
 function assignMiddleLayouts(count: number, withImages = false): string[] {
-  // When images are requested, weave in more "split" slots
   const palette = withImages
     ? ["split", "content", "split", "list", "bigNumber", "split", "quote", "content", "split", "list"]
     : ["content", "list", "bigNumber", "content", "quote", "split", "content", "list", "content", "split"]
-
-  const layouts: string[] = []
-  for (let i = 0; i < count; i++) {
-    layouts.push(palette[i % palette.length])
-  }
-  return layouts
+  return Array.from({ length: count }, (_, i) => palette[i % palette.length])
 }

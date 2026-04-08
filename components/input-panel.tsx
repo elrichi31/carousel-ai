@@ -1,6 +1,6 @@
 "use client"
 
-import { Sparkles, ChevronDown, ImageIcon, Search } from "lucide-react"
+import { Sparkles, ChevronDown, ImageIcon, Search, Upload } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -224,36 +224,33 @@ export function InputPanel({
           {formData.withImages && (
             <div className="space-y-1.5">
               <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wide font-medium">Fuente de imágenes</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => onFormChange({ imageSource: "unsplash" })}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs transition-all ${
-                    formData.imageSource === "unsplash"
-                      ? "border-primary bg-primary/10 text-foreground"
-                      : "border-border/50 bg-muted/50 text-muted-foreground hover:border-border hover:text-foreground"
-                  }`}
-                >
-                  <Search className="h-3.5 w-3.5" />
-                  <span>Unsplash</span>
-                  <span className="ml-auto rounded px-1 py-0.5 text-[9px] font-medium bg-green-500/15 text-green-600">Gratis</span>
-                </button>
-                <button
-                  onClick={() => onFormChange({ imageSource: "dalle" })}
-                  className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2.5 text-xs transition-all ${
-                    formData.imageSource === "dalle"
-                      ? "border-primary bg-primary/10 text-foreground"
-                      : "border-border/50 bg-muted/50 text-muted-foreground hover:border-border hover:text-foreground"
-                  }`}
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>DALL-E 3</span>
-                  <span className="ml-auto rounded px-1 py-0.5 text-[9px] font-medium bg-yellow-500/15 text-yellow-600">IA</span>
-                </button>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "unsplash" as const, icon: <Search className="h-3.5 w-3.5" />, label: "Unsplash", badge: "Gratis", badgeClass: "bg-green-500/15 text-green-600" },
+                  { id: "dalle"   as const, icon: <Sparkles className="h-3.5 w-3.5" />, label: "DALL·E",  badge: "IA",    badgeClass: "bg-yellow-500/15 text-yellow-600" },
+                  { id: "upload"  as const, icon: <Upload className="h-3.5 w-3.5" />,   label: "Mis fotos", badge: "Tuyas", badgeClass: "bg-blue-500/15 text-blue-600" },
+                ].map(({ id, icon, label, badge, badgeClass }) => (
+                  <button
+                    key={id}
+                    onClick={() => onFormChange({ imageSource: id })}
+                    className={`flex flex-col items-center gap-1.5 rounded-lg border px-2 py-2.5 text-xs transition-all ${
+                      formData.imageSource === id
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border/50 bg-muted/50 text-muted-foreground hover:border-border hover:text-foreground"
+                    }`}
+                  >
+                    {icon}
+                    <span className="font-medium">{label}</span>
+                    <span className={`rounded px-1 py-0.5 text-[9px] font-medium ${badgeClass}`}>{badge}</span>
+                  </button>
+                ))}
               </div>
               <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
                 {formData.imageSource === "unsplash"
                   ? "Fotos reales de Unsplash, gratis y sin atribución requerida."
-                  : "Imágenes únicas generadas por IA (~$0.04 por imagen)."}
+                  : formData.imageSource === "dalle"
+                  ? "Imágenes únicas generadas por IA (~$0.04 por imagen)."
+                  : "Sube tus propias fotos directamente en el editor de cada slide."}
               </p>
             </div>
           )}

@@ -5,7 +5,11 @@
       "Bash(npm install:*)",
       "Bash(npm uninstall:*)",
       "Bash(xargs grep:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(find /Users/nicolasmoina/Desktop/PB/carousel-ai/carousel-app/app -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.jsx\" \\\\\\) -exec wc -l {} +)",
+      "Bash(find /Users/nicolasmoina/Desktop/PB/carousel-ai/carousel-app/components -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.jsx\" \\\\\\) -exec wc -l {} +)",
+      "Bash(find /Users/nicolasmoina/Desktop/PB/carousel-ai/carousel-app/lib -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.jsx\" \\\\\\) -exec wc -l {} +)",
+      "Bash(find /Users/nicolasmoina/Desktop/PB/carousel-ai/carousel-app/hooks -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.jsx\" \\\\\\) -exec wc -l {} +)"
     ]
   }
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import OpenAI from "openai"
-import { buildSystemPrompt, buildUserPrompt } from "@/lib/ai-prompt"
+import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompts/carousel-prompt"
 import type { CarouselFormData, BrandSettings } from "@/lib/types"
 
 const openai = new OpenAI({

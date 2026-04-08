@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import OpenAI from "openai"
-import { buildSingleSlideSystemPrompt, buildSingleSlideUserPrompt } from "@/lib/ai-prompt"
+import { buildSingleSlideSystemPrompt, buildSingleSlideUserPrompt } from "@/lib/prompts/slide-prompt"
 import type { CarouselFormData, BrandSettings, SlideLayout } from "@/lib/types"
 
 const openai = new OpenAI({
@@ -17,10 +17,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { slideIndex, totalSlides, currentLayout, formData, brand } = body as {
+    const { slideIndex, totalSlides, currentLayout, customPrompt, formData, brand } = body as {
       slideIndex: number
       totalSlides: number
       currentLayout: SlideLayout
+      customPrompt?: string
       formData: CarouselFormData
       brand: BrandSettings | null
     }
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
     }
 
     const systemPrompt = buildSingleSlideSystemPrompt()
-    const userPrompt = buildSingleSlideUserPrompt(slideIndex, totalSlides, currentLayout, formData, brand)
+    const userPrompt = buildSingleSlideUserPrompt(slideIndex, totalSlides, currentLayout, formData, brand, customPrompt)
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
