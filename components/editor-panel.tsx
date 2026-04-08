@@ -5,7 +5,7 @@ import {
   LayoutGrid, Palette, Type, RefreshCw, Copy, Download,
   AlignCenter, AlignLeft, Columns2, Hash, Quote,
   MousePointerClick, ListChecks, Plus, Wallpaper, ChevronDown, X,
-  ImageIcon, Sparkles, Search, Trash2, GalleryThumbnails,
+  ImageIcon, Sparkles, Search, Trash2, GalleryThumbnails, Upload,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -58,6 +58,7 @@ interface EditorPanelProps {
   onImageGenerate: () => void
   onImageRemove: () => void
   onImageRegenerateWithPrompt: (prompt: string) => void
+  onImageUpload: (file: File) => void
   isRegenerating?: boolean
   isExporting?: boolean
   isImageLoading?: boolean
@@ -85,13 +86,16 @@ export function EditorPanel({
   onImageGenerate,
   onImageRemove,
   onImageRegenerateWithPrompt,
+  onImageUpload,
   isRegenerating = false,
   isExporting = false,
   isImageLoading = false,
 }: EditorPanelProps) {
   const colorInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [variantPickerOpen, setVariantPickerOpen] = useState<string | null>(null)
   const [editedPrompt, setEditedPrompt] = useState(currentSlide.imagePrompt ?? "")
+  const [isDragOver, setIsDragOver] = useState(false)
 
   // Sync local prompt state when the active slide changes
   useEffect(() => {
@@ -112,6 +116,23 @@ export function EditorPanel({
     selectedLayout === "split" ||
     (selectedLayout === "content" &&
       (currentVariant === "image-right" || currentVariant === "image-left"))
+
+  // Paste image from clipboard (Ctrl+V / Cmd+V)
+  useEffect(() => {
+    if (!supportsImage) return
+    const handlePaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return
+      const imageItem = Array.from(e.clipboardData?.items ?? []).find(item => item.type.startsWith("image/"))
+      if (!imageItem) return
+      const file = imageItem.getAsFile()
+      if (!file) return
+      e.preventDefault()
+      onImageUpload(file)
+    }
+    document.addEventListener("paste", handlePaste)
+    return () => document.removeEventListener("paste", handlePaste)
+  }, [supportsImage, onImageUpload])
 
   function getLayoutVariants(layout: typeof selectedLayout) {
     switch (layout) {
@@ -376,6 +397,18 @@ export function EditorPanel({
             {currentSlide.imageUrl ? (
               /* Preview + actions when an image exists */
               <div className="space-y-2">
+                {/* Hidden file input for replacing image */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) onImageUpload(file)
+                    e.target.value = ""
+                  }}
+                />
                 <div className="relative overflow-hidden rounded-lg border border-border/50 bg-muted/30" style={{ aspectRatio: "3/4" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -392,16 +425,18 @@ export function EditorPanel({
                   </button>
                 </div>
                 {/* Editable prompt / keywords box */}
-                {currentSlide.imagePrompt !== undefined && (
+                {currentSlide.imagePrompt !== undefined && currentSlide.imageSource !== "upload" && (
                   <div className="rounded-lg border border-border/50 bg-muted/30 p-2.5 space-y-2">
                     <div className="flex items-center gap-1.5">
                       {currentSlide.imageSource === "dalle" ? (
                         <Sparkles className="h-2.5 w-2.5 text-muted-foreground/50 flex-shrink-0" />
+                      ) : currentSlide.imageSource === "upload" ? (
+                        <Upload className="h-2.5 w-2.5 text-muted-foreground/50 flex-shrink-0" />
                       ) : (
                         <Search className="h-2.5 w-2.5 text-muted-foreground/50 flex-shrink-0" />
                       )}
                       <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                        {currentSlide.imageSource === "dalle" ? "Prompt generado" : "Keywords de búsqueda"}
+                        {currentSlide.imageSource === "dalle" ? "Prompt generado" : currentSlide.imageSource === "upload" ? "Imagen subida" : "Keywords de búsqueda"}
                       </p>
                     </div>
                     <textarea
@@ -427,7 +462,7 @@ export function EditorPanel({
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={onImageSearch}
                     disabled={isImageLoading}
@@ -452,16 +487,48 @@ export function EditorPanel({
                     )}
                     AI
                   </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isImageLoading}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-border/50 bg-muted/50 px-2 py-2 text-xs text-muted-foreground hover:border-border hover:text-foreground transition-all disabled:opacity-50"
+                  >
+                    <Upload className="h-3 w-3" />
+                    Subir
+                  </button>
                 </div>
               </div>
             ) : (
               /* Empty state — no image yet */
               <div className="space-y-2">
-                <div className="flex items-center justify-center rounded-lg border border-dashed border-border/50 bg-muted/20 py-6">
-                  <div className="flex flex-col items-center gap-1.5 text-muted-foreground/50">
-                    <ImageIcon className="h-6 w-6" />
-                    <span className="text-[10px]">Sin imagen</span>
-                  </div>
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) onImageUpload(file)
+                    e.target.value = ""
+                  }}
+                />
+                {/* Drop zone */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
+                  onDragLeave={() => setIsDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setIsDragOver(false)
+                    const file = e.dataTransfer.files[0]
+                    if (file?.type.startsWith("image/")) onImageUpload(file)
+                  }}
+                  className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-6 transition-colors ${isDragOver ? "border-primary/60 bg-primary/5 text-primary" : "border-border/50 bg-muted/20 text-muted-foreground/50 hover:border-border/80 hover:text-muted-foreground/70"}`}
+                >
+                  <Upload className="h-5 w-5" />
+                  <span className="text-[10px] text-center leading-tight">
+                    Arrastra, pega (Ctrl+V)<br />o haz clic para subir
+                  </span>
                 </div>
                 <button
                   onClick={onImageSearch}

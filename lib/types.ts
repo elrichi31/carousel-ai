@@ -37,7 +37,7 @@ export interface Slide {
   imageUrl?: string
   imagePosition?: "left" | "right" | "background"
   imagePrompt?: string                  // The prompt/query used to generate or search the image
-  imageSource?: "unsplash" | "dalle"    // Which service provided the image
+  imageSource?: "unsplash" | "dalle" | "upload"    // Which service provided the image
 
   // Layout variant (for layouts that have multiple visual styles)
   layoutVariant?: string

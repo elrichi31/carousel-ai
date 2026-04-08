@@ -251,6 +251,21 @@ export default function WorkspacePage() {
   const handleImageSearch = () => fetchImage("unsplash")
   const handleImageGenerate = () => fetchImage("dalle")
 
+  const handleImageUpload = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string
+      setSlides((prev) =>
+        prev.map((slide, i) =>
+          i === activeSlide
+            ? { ...slide, imageUrl: dataUrl, imagePrompt: undefined, imageSource: "upload" }
+            : slide
+        )
+      )
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleImageRemove = () => {
     setSlides((prev) =>
       prev.map((slide, i) =>
@@ -354,6 +369,7 @@ export default function WorkspacePage() {
               onImageGenerate={handleImageGenerate}
               onImageRemove={handleImageRemove}
               onImageRegenerateWithPrompt={handleImageRegenerateWithPrompt}
+              onImageUpload={handleImageUpload}
               isRegenerating={isRegenerating}
               isExporting={isExporting}
               isImageLoading={isImageLoading}
