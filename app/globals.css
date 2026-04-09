@@ -138,23 +138,25 @@
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 10px;
+    height: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: oklch(0.1 0 0);
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: oklch(0.55 0.12 145);
-    border-radius: 3px;
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+    background: oklch(0.36 0.02 145 / 0.75);
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.6 0.12 145);
+    background: oklch(0.44 0.03 145 / 0.9);
   }
 
   /* Firefox */
   * {
     scrollbar-width: thin;
-    scrollbar-color: oklch(0.55 0.12 145) oklch(0.1 0 0);
+    scrollbar-color: oklch(0.36 0.02 145 / 0.75) transparent;
   }
 }
