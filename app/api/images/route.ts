@@ -3,24 +3,41 @@ import OpenAI from "openai"
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
-// ── Unsplash: extract 1-3 English keywords for the search query ───────────────
-async function extractSearchKeywords(query: string): Promise<string> {
+// ── Unsplash: extract 2-4 English keywords for the search query ───────────────
+async function extractSearchKeywords(slideTitle: string, carouselTopic: string): Promise<string> {
+  const context = carouselTopic && carouselTopic !== slideTitle
+    ? `Carousel topic: "${carouselTopic}". Slide title: "${slideTitle}"`
+    : `Topic: "${slideTitle}"`
+
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       {
+        role: "system",
+        content: `You are an expert at finding stock photos on Unsplash. Given a slide topic and carousel context, produce 2-4 English keywords that will find a visually compelling, thematically accurate stock photo.
+Rules:
+- Keywords must be concrete and visual (objects, scenes, actions — not abstract concepts)
+- Match the domain: cybersecurity → "hacker dark screen code", finance → "stock market trading", health → "doctor hospital stethoscope"
+- Prefer specific nouns and adjectives over generic terms like "business" or "technology"
+- Return ONLY the keywords, space-separated, no punctuation, no explanation`,
+      },
+      {
         role: "user",
-        content: `Extract 1-3 English keywords to search a stock photo about: "${query}". Return ONLY the keywords separated by spaces. No punctuation, no explanation.`,
+        content: context,
       },
     ],
-    max_tokens: 15,
-    temperature: 0.2,
+    max_tokens: 20,
+    temperature: 0.3,
   })
-  return completion.choices[0]?.message?.content?.trim() ?? query
+  return completion.choices[0]?.message?.content?.trim() ?? slideTitle
 }
 
 // ── DALL-E: generate a rich visual prompt from the slide topic ────────────────
-async function generateImagePrompt(query: string): Promise<string> {
+async function generateImagePrompt(slideTitle: string, carouselTopic: string): Promise<string> {
+  const context = carouselTopic && carouselTopic !== slideTitle
+    ? `Carousel topic: "${carouselTopic}". Slide title: "${slideTitle}"`
+    : `Slide topic: "${slideTitle}"`
+
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
@@ -29,29 +46,32 @@ async function generateImagePrompt(query: string): Promise<string> {
         content: `You are an expert visual art director who writes precise, evocative prompts for DALL-E 3.
 Your prompts produce professional images for social media carousels (Instagram/TikTok).
 Rules:
-- Describe a single clear scene — no text, no typography, no watermarks
-- Specify lighting, mood, color palette, and composition
-- Use photography or illustration style language
-- Output ONLY the prompt, under 180 characters`,
+- The image must be thematically and visually accurate to the topic — not generic
+- Describe a single clear scene: setting, subjects, lighting, mood, color palette, composition
+- No text, no typography, no watermarks, no logos in the image
+- Match the domain visually: cybersecurity → dark server rooms, glowing screens, hooded figures; finance → charts, trading floors; health → clinical settings, etc.
+- Output ONLY the prompt, under 200 characters`,
       },
       {
         role: "user",
-        content: `Write a DALL-E 3 image prompt for a carousel slide about: "${query}"`,
+        content: `Write a DALL-E 3 image prompt for: ${context}`,
       },
     ],
-    max_tokens: 150,
-    temperature: 0.8,
+    max_tokens: 180,
+    temperature: 0.7,
   })
-  return completion.choices[0]?.message?.content?.trim() ?? query
+  return completion.choices[0]?.message?.content?.trim() ?? slideTitle
 }
 
 export async function POST(request: Request) {
   try {
-    const { query, source = "unsplash", customPrompt } = await request.json() as {
+    const { query, topic, source = "unsplash", customPrompt } = await request.json() as {
       query: string
+      topic?: string           // carousel-level topic for better context
       source?: "unsplash" | "dalle"
-      customPrompt?: string   // if provided, skip GPT step and use directly
+      customPrompt?: string    // if provided, skip GPT step and use directly
     }
+    const carouselTopic = topic?.trim() || query
 
     if (!query?.trim()) {
       return NextResponse.json({ error: "Query is required" }, { status: 400 })
@@ -64,7 +84,7 @@ export async function POST(request: Request) {
       }
 
       // Use the custom prompt directly if provided (user edited it), otherwise generate
-      const imagePrompt = customPrompt?.trim() || await generateImagePrompt(query)
+      const imagePrompt = customPrompt?.trim() || await generateImagePrompt(query, carouselTopic)
 
       const result = await openai.images.generate({
         model: "dall-e-3",
@@ -96,8 +116,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Use custom keywords directly if provided, otherwise extract from the raw query
-    const searchQuery = customPrompt?.trim() || await extractSearchKeywords(query)
+    // Use custom keywords directly if provided, otherwise extract from the slide + carousel context
+    const searchQuery = customPrompt?.trim() || await extractSearchKeywords(query, carouselTopic)
 
     const res = await fetch(
       `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchQuery)}&orientation=portrait&per_page=10&content_filter=high`,

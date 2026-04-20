@@ -50,7 +50,15 @@ export function useWorkspace() {
     setSlides((prev) => prev.map((s, i) => i === activeSlide ? { ...s, ...updates } : s))
 
   const handleLayoutChange = (layout: SlideLayout) => updateActiveSlide({ layout })
-  const handleVariantChange = (variant: string) => updateActiveSlide({ layoutVariant: variant })
+  const handleVariantChange = (variant: string) => {
+    if (variant === 'bg-image') {
+      updateActiveSlide({ imagePosition: 'background' })
+    } else {
+      updateActiveSlide({ layoutVariant: variant, imagePosition: undefined })
+    }
+  }
+  const handleImagePositionChange = (position: "background" | undefined) =>
+    updateActiveSlide({ imagePosition: position })
 
   const handleDuplicateSlide = () => {
     const newSlide = { ...slides[activeSlide], id: Date.now().toString() }
@@ -96,7 +104,7 @@ export function useWorkspace() {
                 fetch("/api/images", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ query: s.title || formData.topic, source: formData.imageSource }),
+                  body: JSON.stringify({ query: s.title || formData.topic, topic: formData.topic, source: formData.imageSource }),
                 }).then((r) => r.json())
               )
             )
@@ -182,7 +190,7 @@ export function useWorkspace() {
       const res = await fetch("/api/images", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, source }),
+        body: JSON.stringify({ query, topic: formData.topic, source }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || "No se pudo obtener la imagen."); return }
@@ -216,7 +224,7 @@ export function useWorkspace() {
       const res = await fetch("/api/images", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: currentSlide.title || formData.topic, source, customPrompt }),
+        body: JSON.stringify({ query: currentSlide.title || formData.topic, topic: formData.topic, source, customPrompt }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || "No se pudo regenerar la imagen."); return }
@@ -239,7 +247,7 @@ export function useWorkspace() {
     exportContainerRef,
     // Handlers
     handleFormChange, handleColorChange,
-    handleLayoutChange, handleVariantChange,
+    handleLayoutChange, handleVariantChange, handleImagePositionChange,
     handleGenerate, handleRegenerateSlide, handleExport,
     handleDuplicateSlide, handleDeleteSlide,
     handleImageSearch, handleImageGenerate, handleImageUpload, handleImageRemove, handleImageRegenerateWithPrompt,

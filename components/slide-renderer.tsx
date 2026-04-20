@@ -29,6 +29,7 @@ function slideHasImage(slide: Slide) {
     !!slide.imageUrl &&
     (IMAGE_LAYOUTS.has(slide.layout) ||
       slide.layout === "split" ||
+      slide.imagePosition === "background" ||
       (slide.layout === "content" &&
         (slide.layoutVariant === "image-right" || slide.layoutVariant === "image-left")))
   )
@@ -70,6 +71,9 @@ export function SlideRenderer({
   const primary = activePrimary ?? colorThemes.green.primary
   const fontFamily = fontThemes[fontTheme]?.family ?? fontThemes.geist.family
   const hasImage = slideHasImage(slide)
+  // Background image mode: put brand at top to respect platform safe zones (TikTok bottom UI)
+  const isBgMode = slide.imagePosition === "background"
+  const brandPosition = isBgMode ? { top: "7%" } : { bottom: "14%" }
 
   return (
     <div className="relative flex h-full flex-col" style={{ fontFamily }}>
@@ -79,7 +83,7 @@ export function SlideRenderer({
       {hasBrand && (
         <div
           className="absolute left-0 right-0 flex items-center justify-center pointer-events-none"
-          style={{ bottom: "14%" }}
+          style={brandPosition}
         >
           <div
             className="flex items-center gap-1.5 rounded-full px-2.5 py-1"

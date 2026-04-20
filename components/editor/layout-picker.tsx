@@ -54,7 +54,8 @@ export function LayoutPicker({
   const [variantOpen, setVariantOpen] = useState(false)
 
   const selectedLayout = slide.layout
-  const currentVariant = slide.layoutVariant ?? 'default'
+  // bg-image is stored as imagePosition="background", not as layoutVariant
+  const currentVariant = slide.imagePosition === 'background' ? 'bg-image' : (slide.layoutVariant ?? 'default')
   const isCoverSlide = slideIndex === 0
   const isCtaSlide = slideIndex === totalSlides - 1
   const variants = getVariants(selectedLayout)
@@ -135,7 +136,13 @@ function VariantPicker({
               }`}
             >
               <div className="aspect-[4/5] w-full overflow-hidden rounded-md">
-                <SlideVariantPreview slide={{ ...slide, layoutVariant: v.id }} primary={primary} bgStyle={bgStyle} />
+                <SlideVariantPreview
+                  slide={v.id === 'bg-image'
+                    ? { ...slide, imagePosition: 'background' }
+                    : { ...slide, layoutVariant: v.id, imagePosition: undefined }}
+                  primary={primary}
+                  bgStyle={bgStyle}
+                />
               </div>
               <span className={`text-center text-[10px] ${currentVariant === v.id ? "text-primary" : "text-muted-foreground"}`}>
                 {v.label}

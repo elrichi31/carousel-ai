@@ -50,9 +50,12 @@ export function EditorPanel({
   const selectedLayout = currentSlide.layout
   const currentVariant = currentSlide.layoutVariant ?? 'default'
 
+  const isBackgroundMode = currentSlide.imagePosition === "background"
+
   const supportsImage =
     selectedLayout === "imageOverlay" ||
     selectedLayout === "split" ||
+    isBackgroundMode ||
     (selectedLayout === "content" && (currentVariant === "image-right" || currentVariant === "image-left"))
 
   useImagePaste(supportsImage, onImageUpload)
