@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     // Up to 2 attempts — if slide count is wrong, ask the model to fix it
     for (let attempt = 1; attempt <= 2; attempt++) {
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-5.4-nano",
         messages,
         temperature: 0.4,
         max_tokens: 4500,

@@ -10,7 +10,7 @@ async function extractSearchKeywords(slideTitle: string, carouselTopic: string):
     : `Topic: "${slideTitle}"`
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5.4-nano",
     messages: [
       {
         role: "system",
@@ -32,18 +32,18 @@ Rules:
   return completion.choices[0]?.message?.content?.trim() ?? slideTitle
 }
 
-// ── DALL-E: generate a rich visual prompt from the slide topic ────────────────
+// ── gpt-image-1.5: generate a rich visual prompt from the slide topic ────────
 async function generateImagePrompt(slideTitle: string, carouselTopic: string): Promise<string> {
   const context = carouselTopic && carouselTopic !== slideTitle
     ? `Carousel topic: "${carouselTopic}". Slide title: "${slideTitle}"`
     : `Slide topic: "${slideTitle}"`
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: "gpt-5.4-nano",
     messages: [
       {
         role: "system",
-        content: `You are an expert visual art director who writes precise, evocative prompts for DALL-E 3.
+        content: `You are an expert visual art director who writes precise, evocative prompts for gpt-image-1.5.
 Your prompts produce professional images for social media carousels (Instagram/TikTok).
 Rules:
 - The image must be thematically and visually accurate to the topic — not generic
@@ -54,7 +54,7 @@ Rules:
       },
       {
         role: "user",
-        content: `Write a DALL-E 3 image prompt for: ${context}`,
+        content: `Write an image prompt for: ${context}`,
       },
     ],
     max_tokens: 180,
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Query is required" }, { status: 400 })
     }
 
-    // ── DALL-E 3 ────────────────────────────────────────────────────────────
+    // ── gpt-image-1.5 ────────────────────────────────────────────────────────
     if (source === "dalle") {
       if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "sk-your-api-key-here") {
         return NextResponse.json({ error: "OpenAI API key not configured" }, { status: 500 })
@@ -87,13 +87,12 @@ export async function POST(request: Request) {
       const imagePrompt = customPrompt?.trim() || await generateImagePrompt(query, carouselTopic)
 
       const result = await openai.images.generate({
-        model: "dall-e-3",
+        model: "gpt-image-1.5",
         prompt: imagePrompt,
-        size: "1024x1792",
-        quality: "standard",
-        response_format: "b64_json",
+        size: "1024x1536",
+        quality: "medium",
         n: 1,
-      })
+      } as Parameters<typeof openai.images.generate>[0])
 
       const b64 = result.data[0]?.b64_json
       if (!b64) {

@@ -227,7 +227,7 @@ export function InputPanel({
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: "unsplash" as const, icon: <Search className="h-3.5 w-3.5" />, label: "Unsplash", badge: "Gratis", badgeClass: "bg-green-500/15 text-green-600" },
-                  { id: "dalle"   as const, icon: <Sparkles className="h-3.5 w-3.5" />, label: "DALL·E",  badge: "IA",    badgeClass: "bg-yellow-500/15 text-yellow-600" },
+                  { id: "dalle"   as const, icon: <Sparkles className="h-3.5 w-3.5" />, label: "GPT Image",  badge: "IA",    badgeClass: "bg-yellow-500/15 text-yellow-600" },
                   { id: "upload"  as const, icon: <Upload className="h-3.5 w-3.5" />,   label: "Mis fotos", badge: "Tuyas", badgeClass: "bg-blue-500/15 text-blue-600" },
                 ].map(({ id, icon, label, badge, badgeClass }) => (
                   <button
@@ -249,7 +249,7 @@ export function InputPanel({
                 {formData.imageSource === "unsplash"
                   ? "Fotos reales de Unsplash, gratis y sin atribución requerida."
                   : formData.imageSource === "dalle"
-                  ? "Imágenes únicas generadas por IA (~$0.04 por imagen)."
+                  ? "Imágenes únicas generadas por IA (~$0.07 por imagen, calidad media)."
                   : "Sube tus propias fotos directamente en el editor de cada slide."}
               </p>
             </div>

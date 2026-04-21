@@ -14,7 +14,8 @@
       "WebFetch(domain:skills.sh)",
       "Bash(ls -d .*)",
       "Bash(grep -v '^\\\\.\\\\.$')",
-      "Bash(grep -v '^\\\\.$')"
+      "Bash(grep -v '^\\\\.$')",
+      "WebSearch"
     ]
   }
 }
