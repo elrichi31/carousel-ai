@@ -15,10 +15,11 @@ export async function POST(request: Request) {
       )
     }
 
-    const { layout, topic, brand } = await request.json() as {
+    const { layout, topic, brand, customInstructions } = await request.json() as {
       layout: AdLayout
       topic: string
       brand: BrandSettings | null
+      customInstructions?: string
     }
 
     if (!topic?.trim()) {
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: buildAdSystemPrompt() },
-        { role: "user",   content: buildAdUserPrompt(layout, topic, brand) },
+        { role: "user",   content: buildAdUserPrompt(layout, topic, brand, customInstructions) },
       ],
       temperature: 0.7,
       max_tokens: 800,

@@ -61,11 +61,13 @@ export function buildAdUserPrompt(
   layout: AdLayout,
   topic: string,
   brand: BrandSettings | null,
+  customInstructions?: string,
 ): string {
   const brandHint = brand?.name ? ` The brand name is "${brand.name}".` : ""
   const layoutName = layout.charAt(0).toUpperCase() + layout.slice(1).replace(/([A-Z])/g, " $1")
+  const extra = customInstructions?.trim() ? `\nAdditional instructions: ${customInstructions.trim()}` : ""
 
-  return `Create a "${layoutName}" ad for: ${topic}.${brandHint}
+  return `Create a "${layoutName}" ad for: ${topic}.${brandHint}${extra}
 
 Return ONLY this JSON schema filled with compelling copy:
 ${SCHEMAS[layout]}`

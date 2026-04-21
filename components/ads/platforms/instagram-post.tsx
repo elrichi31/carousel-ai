@@ -6,7 +6,7 @@ import type { AdState } from "@/components/ads/types"
 import type { BrandSettings } from "@/lib/types"
 
 const AD_W = 380
-const AD_H = 380
+const AD_H = 475
 
 interface Props { ad: AdState; brand: BrandSettings | null }
 

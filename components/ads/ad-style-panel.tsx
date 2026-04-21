@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Sparkles, Loader2, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -12,35 +11,16 @@ interface AdStylePanelProps {
   ad: AdState
   set: (k: keyof AdState, v: unknown) => void
   brand: BrandSettings
+  topic: string
+  setTopic: (v: string) => void
+  isGenerating: boolean
+  error: string | null
   onBrandUpdate: (updates: Partial<BrandSettings>) => void
   onBrandClear: () => void
-  onGenerated: (data: Partial<AdState>) => void
+  onGenerate: () => void
 }
 
-export function AdStylePanel({ ad, set, brand, onBrandUpdate, onBrandClear, onGenerated }: AdStylePanelProps) {
-  const [topic, setTopic] = useState("")
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleGenerate = async () => {
-    if (!topic.trim()) return
-    setIsGenerating(true)
-    setError(null)
-    try {
-      const res = await fetch("/api/generate-ad", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ layout: ad.layout, topic, brand }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? "Error generando")
-      onGenerated(data)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error desconocido")
-    } finally {
-      setIsGenerating(false)
-    }
-  }
+export function AdStylePanel({ ad, set, brand, topic, setTopic, isGenerating, error, onBrandUpdate, onBrandClear, onGenerate }: AdStylePanelProps) {
 
   return (
     <div className="flex h-full flex-col">
@@ -75,8 +55,18 @@ export function AdStylePanel({ ad, set, brand, onBrandUpdate, onBrandClear, onGe
           </div>
         </div>
 
-        {/* Topic input + generate */}
-        <div className="space-y-3">
+        <div className="border-t border-border/30" />
+
+        {/* Brand panel — accent color comes from brand */}
+        <div className="space-y-2">
+          <Label className="text-xs text-muted-foreground">Marca</Label>
+          <BrandPanel brand={brand} onUpdate={onBrandUpdate} onClear={onBrandClear} />
+        </div>
+
+        <div className="border-t border-border/30" />
+
+        {/* Topic input */}
+        <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">¿Sobre qué es el anuncio?</Label>
           <textarea
             value={topic}
@@ -84,72 +74,31 @@ export function AdStylePanel({ ad, set, brand, onBrandUpdate, onBrandClear, onGe
             placeholder="Ej: app de productividad para freelancers que ahorra 3h al día"
             rows={3}
             className="w-full resize-none rounded-md border border-border/50 bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
-            onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate() }}
+            onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onGenerate() }}
           />
           {error && <p className="text-xs text-red-400">{error}</p>}
-          <Button
-            onClick={handleGenerate}
-            disabled={isGenerating || !topic.trim()}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
-          >
-            {isGenerating ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generando...</>
-            ) : (
-              <><Sparkles className="mr-2 h-4 w-4" /> Generar con IA</>
-            )}
-          </Button>
-        </div>
-
-        <div className="border-t border-border/30" />
-
-        {/* Accent color + brand swatches */}
-        <div className="space-y-3">
-          <Label className="text-xs text-muted-foreground">Color acento</Label>
-          {brand.colors.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {brand.colors.map((color, i) => (
-                <button
-                  key={i}
-                  onClick={() => set("accentColor", color)}
-                  title={color}
-                  className="h-7 w-7 rounded-full border-2 transition-all"
-                  style={{
-                    backgroundColor: color,
-                    borderColor: ad.accentColor === color ? "#fff" : "transparent",
-                    boxShadow: ad.accentColor === color ? "0 0 0 1px rgba(255,255,255,0.4)" : "none",
-                  }}
-                />
-              ))}
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={ad.accentColor}
-              onChange={e => set("accentColor", e.target.value)}
-              className="h-8 w-8 cursor-pointer rounded border border-border/50 bg-transparent p-0.5"
-            />
-            <span className="text-xs text-muted-foreground font-mono">{ad.accentColor}</span>
-          </div>
-        </div>
-
-        <div className="border-t border-border/30" />
-
-        {/* Brand panel */}
-        <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Marca</Label>
-          <BrandPanel brand={brand} onUpdate={onBrandUpdate} onClear={onBrandClear} />
         </div>
 
       </div>
 
-      {/* Export */}
-      <div className="border-t border-border/50 p-4">
+      {/* Footer: generate + export */}
+      <div className="space-y-2 border-t border-border/50 p-4">
+        <Button
+          onClick={onGenerate}
+          disabled={isGenerating || !topic.trim()}
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
+        >
+          {isGenerating ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generando...</>
+          ) : (
+            <><Sparkles className="mr-2 h-4 w-4" /> Generar con IA</>
+          )}
+        </Button>
         <Button disabled className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40">
           <Download className="mr-2 h-4 w-4" />
           Exportar anuncio
         </Button>
-        <p className="mt-2 text-center text-[10px] text-muted-foreground/50">Próximamente</p>
+        <p className="text-center text-[10px] text-muted-foreground/50">Exportar próximamente</p>
       </div>
     </div>
   )
