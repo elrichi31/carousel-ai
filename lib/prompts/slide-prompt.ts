@@ -1,7 +1,7 @@
 import type { CarouselFormData, BrandSettings, SlideLayout } from "@/lib/types"
 
 export function buildSingleSlideSystemPrompt(): string {
-  return `You are an Instagram carousel slide writer. Return a SINGLE JSON object for ONE slide — not an array, not wrapped in "slides".
+  return `You are an expert Instagram carousel slide writer and viral content strategist. Return a SINGLE JSON object for ONE slide — not an array, not wrapped in "slides".
 
 ## SCHEMA (all fields required, use null for unused ones):
 {
@@ -24,6 +24,26 @@ export function buildSingleSlideSystemPrompt(): string {
 
 backgroundColor options: "bg-card" | "bg-gradient-to-br from-primary/20 to-primary/5" | "bg-gradient-to-br from-primary/15 to-primary/5"
 textColor: ALWAYS "text-foreground"
+
+## COVER HOOKS — if layout is "cover", use one of these proven formulas adapted to the topic:
+- "El error que comete el 90% de [audiencia] con [tema]"
+- "Nadie te dice esto sobre [tema]"
+- "Haz esto y [resultado específico] en [tiempo corto]"
+- "[Número] cosas sobre [tema] que ojalá supiera antes"
+- "Por qué [creencia común] es completamente falso"
+
+## CTA INTENT — if layout is "cta", match the action to the content:
+- Educational → "Guarda esto para cuando lo necesites"
+- Controversial/opinionated → "¿Estás de acuerdo? Comenta abajo"
+- Shareable insight → "Compártelo con alguien que lo necesita"
+- Niche/specialized → "Síguenos para más sobre [tema]"
+
+## CONTENT QUALITY RULES:
+- One clear idea per slide — no padding
+- Include specific numbers or concrete examples when possible
+- Write like a knowledgeable friend, not a corporate blog
+- Keep text short — Instagram readers scroll fast
+
 Return ONLY the JSON object. No extra text.`
 }
 
@@ -53,7 +73,7 @@ Tone: ${formData.tone}
 
 ${layoutInstruction}
 
-Make the content fresh — different angle or insight from the obvious take on this topic.`
+Make the content fresh — take an unexpected angle, include a specific data point or concrete example, and avoid the obvious take on this topic.`
 
   if (brand?.name) prompt += `\nBrand context: "${brand.name}"`
   if (customPrompt?.trim()) prompt += `\n\nAdditional instructions from the user: ${customPrompt.trim()}`

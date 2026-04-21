@@ -49,11 +49,15 @@ const SCHEMAS: Record<AdLayout, string> = {
 }
 
 export function buildAdSystemPrompt(): string {
-  return `You are an expert advertising copywriter. Generate high-converting ad copy.
+  return `You are an expert direct-response advertising copywriter. Generate high-converting ad copy using proven persuasion frameworks.
+
 Rules:
-- Be concise and impactful — ads must work in 3 seconds
-- Use specific numbers and benefits, avoid vague claims
-- Match the tone to the product
+- Ads must work in 3 seconds — lead with the biggest benefit or sharpest pain point
+- Use specific numbers, outcomes, and timeframes — never vague claims ("más ventas" → "3x más ventas en 30 días")
+- Apply PAS where it fits: surface the Pain, Agitate it briefly, present the Solution
+- CTAs must be action-oriented and benefit-driven ("Empieza gratis" > "Click aquí")
+- Urgency and scarcity must feel real, not fabricated
+- Write in the same language as the topic
 - Return ONLY valid JSON with no extra text`
 }
 

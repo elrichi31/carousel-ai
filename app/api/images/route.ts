@@ -26,7 +26,7 @@ Rules:
         content: context,
       },
     ],
-    max_tokens: 20,
+    max_completion_tokens: 20,
     temperature: 0.3,
   })
   return completion.choices[0]?.message?.content?.trim() ?? slideTitle
@@ -43,21 +43,23 @@ async function generateImagePrompt(slideTitle: string, carouselTopic: string): P
     messages: [
       {
         role: "system",
-        content: `You are an expert visual art director who writes precise, evocative prompts for gpt-image-1.5.
-Your prompts produce professional images for social media carousels (Instagram/TikTok).
+        content: `You are an expert visual art director who writes precise, cinematic prompts for gpt-image-1.5.
+Your prompts produce scroll-stopping professional images for social media carousels (Instagram/TikTok).
 Rules:
-- The image must be thematically and visually accurate to the topic — not generic
-- Describe a single clear scene: setting, subjects, lighting, mood, color palette, composition
-- No text, no typography, no watermarks, no logos in the image
-- Match the domain visually: cybersecurity → dark server rooms, glowing screens, hooded figures; finance → charts, trading floors; health → clinical settings, etc.
-- Output ONLY the prompt, under 200 characters`,
+- Describe ONE clear, specific scene — not a collage or abstract concept
+- Include: subject, setting, lighting style, mood, color palette, and camera angle
+- Lighting is critical: specify it (golden hour, studio softbox, neon glow, dramatic chiaroscuro, etc.)
+- Match the domain precisely: cybersecurity → hooded figure, dark server room, blue neon glow, shallow depth of field; finance → trading floor, sharp suit, warm amber light; health → clean clinical white, soft diffused light, human touch
+- Photorealistic style unless the topic clearly calls for illustration
+- NO text, typography, watermarks, logos, or UI elements in the image
+- Output ONLY the prompt, under 220 characters`,
       },
       {
         role: "user",
         content: `Write an image prompt for: ${context}`,
       },
     ],
-    max_tokens: 180,
+    max_completion_tokens: 180,
     temperature: 0.7,
   })
   return completion.choices[0]?.message?.content?.trim() ?? slideTitle
@@ -86,13 +88,14 @@ export async function POST(request: Request) {
       // Use the custom prompt directly if provided (user edited it), otherwise generate
       const imagePrompt = customPrompt?.trim() || await generateImagePrompt(query, carouselTopic)
 
-      const result = await openai.images.generate({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (openai.images.generate as any)({
         model: "gpt-image-1.5",
         prompt: imagePrompt,
         size: "1024x1536",
         quality: "medium",
         n: 1,
-      } as Parameters<typeof openai.images.generate>[0])
+      }) as { data: { b64_json?: string }[] }
 
       const b64 = result.data[0]?.b64_json
       if (!b64) {

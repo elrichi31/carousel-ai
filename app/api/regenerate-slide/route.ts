@@ -40,7 +40,7 @@ export async function POST(request: Request) {
         { role: "user", content: userPrompt },
       ],
       temperature: 0.6,
-      max_tokens: 800,
+      max_completion_tokens: 800,
       response_format: { type: "json_object" },
     })
 

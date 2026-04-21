@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         model: "gpt-5.4-nano",
         messages,
         temperature: 0.4,
-        max_tokens: 4500,
+        max_completion_tokens: 4500,
         response_format: { type: "json_object" },
       })
 
