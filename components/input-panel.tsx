@@ -1,6 +1,6 @@
 "use client"
 
-import { Sparkles, ChevronDown, ImageIcon, Search, Upload } from "lucide-react"
+import { Sparkles, ChevronDown, ImageIcon, Search, Upload, Link, Clock, Trash2, RotateCcw } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { BrandPanel } from "@/components/brand-panel"
-import type { CarouselFormData, BrandSettings } from "@/lib/types"
+import type { CarouselFormData, BrandSettings, Slide, PostCaption } from "@/lib/types"
+import type { HistoryEntry } from "@/hooks/use-session-history"
 import { audienceOptions, toneOptions, visualStyles } from "@/lib/mock-data"
 
 interface InputPanelProps {
@@ -25,6 +26,13 @@ interface InputPanelProps {
   brand: BrandSettings
   onBrandUpdate: (updates: Partial<BrandSettings>) => void
   onBrandClear: () => void
+  // Remix
+  onRemix: (url: string) => void
+  isRemixing: boolean
+  // Session history
+  historyEntries: HistoryEntry[]
+  onLoadHistory: (entry: { slides: Slide[]; caption: PostCaption | null; formData: CarouselFormData }) => void
+  onClearHistory: () => void
 }
 
 const defaultFormData: CarouselFormData = {
@@ -37,6 +45,16 @@ const defaultFormData: CarouselFormData = {
   imageSource: "unsplash",
 }
 
+function timeAgo(timestamp: number): string {
+  const diff = Date.now() - timestamp
+  const mins = Math.floor(diff / 60_000)
+  if (mins < 1) return "hace un momento"
+  if (mins < 60) return `hace ${mins}m`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `hace ${hours}h`
+  return `hace ${Math.floor(hours / 24)}d`
+}
+
 export function InputPanel({
   formData = defaultFormData,
   onFormChange,
@@ -46,8 +64,22 @@ export function InputPanel({
   brand,
   onBrandUpdate,
   onBrandClear,
+  onRemix,
+  isRemixing,
+  historyEntries,
+  onLoadHistory,
+  onClearHistory,
 }: InputPanelProps) {
   const [brandOpen, setBrandOpen] = useState(true)
+  const [remixOpen, setRemixOpen] = useState(false)
+  const [remixUrl, setRemixUrl] = useState("")
+  const [historyOpen, setHistoryOpen] = useState(false)
+
+  const handleRemixSubmit = () => {
+    const url = remixUrl.trim()
+    if (!url) return
+    onRemix(url)
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -86,6 +118,54 @@ export function InputPanel({
                 onUpdate={onBrandUpdate}
                 onClear={onBrandClear}
               />
+            </div>
+          )}
+        </div>
+
+        {/* Remix desde URL */}
+        <div className="rounded-lg border border-border/50 bg-muted/20">
+          <button
+            onClick={() => setRemixOpen(!remixOpen)}
+            className="flex w-full items-center justify-between px-4 py-3 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <Link className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-foreground">Remix desde URL</span>
+              <span className="rounded px-1.5 py-0.5 text-[9px] font-semibold bg-primary/15 text-primary">Nuevo</span>
+            </div>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${remixOpen ? "rotate-180" : ""}`} />
+          </button>
+          {remixOpen && (
+            <div className="border-t border-border/50 px-4 py-4 space-y-3">
+              <p className="text-[10px] text-muted-foreground/70 leading-relaxed">
+                Pega la URL de un artículo, blog post o página web y la IA lo convertirá en un carousel.
+              </p>
+              <input
+                type="url"
+                placeholder="https://ejemplo.com/articulo"
+                value={remixUrl}
+                onChange={(e) => setRemixUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleRemixSubmit()}
+                className="w-full rounded-md border border-border/50 bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
+              />
+              <Button
+                onClick={handleRemixSubmit}
+                disabled={isRemixing || !remixUrl.trim()}
+                size="sm"
+                className="w-full bg-primary/90 text-primary-foreground hover:bg-primary disabled:opacity-50"
+              >
+                {isRemixing ? (
+                  <>
+                    <div className="mr-2 h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    Extrayendo contenido...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                    Convertir en carousel
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </div>
@@ -255,6 +335,55 @@ export function InputPanel({
             </div>
           )}
         </div>
+
+        {/* Session History */}
+        {historyEntries.length > 0 && (
+          <div className="rounded-lg border border-border/50 bg-muted/20">
+            <button
+              onClick={() => setHistoryOpen(!historyOpen)}
+              className="flex w-full items-center justify-between px-4 py-3 text-left"
+            >
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-medium text-foreground">Historial</span>
+                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                  {historyEntries.length}
+                </span>
+              </div>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${historyOpen ? "rotate-180" : ""}`} />
+            </button>
+            {historyOpen && (
+              <div className="border-t border-border/50 px-3 py-3 space-y-2">
+                {historyEntries.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="flex items-start gap-2 rounded-md border border-border/40 bg-card/50 p-2.5"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate leading-tight">{entry.topic}</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                        {entry.slides.length} slides · {timeAgo(entry.timestamp)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => onLoadHistory(entry)}
+                      className="flex-shrink-0 rounded px-2 py-1 text-[10px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                    >
+                      Cargar
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={onClearHistory}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-md py-1.5 text-[10px] text-muted-foreground/60 hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Limpiar historial
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="border-t border-border/50 p-4 space-y-2">

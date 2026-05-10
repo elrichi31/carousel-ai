@@ -18,11 +18,14 @@ interface TikTokFrameProps {
   activePrimary?: string
   fontTheme?: FontThemeId
   bgStyle?: BgStyleId
+  editable?: boolean
+  onUpdateField?: (field: keyof Slide, value: string) => void
+  onUpdateListItem?: (index: number, text: string) => void
 }
 
 export function TikTokFrame({
   slides, activeSlide, onSlideChange, brand, caption, onCaptionChange,
-  activePrimary, fontTheme, bgStyle, isLoading = false,
+  activePrimary, fontTheme, bgStyle, isLoading = false, editable, onUpdateField, onUpdateListItem,
 }: TikTokFrameProps) {
   const profileName = brand?.name || "your.account"
 
@@ -40,7 +43,7 @@ export function TikTokFrame({
       <div className="relative">
         <div className="aspect-[3/5] w-full overflow-hidden relative">
           <div className="absolute inset-0">
-            <SlideRenderer slide={slides[activeSlide]} brand={brand} activePrimary={activePrimary} fontTheme={fontTheme} bgStyle={bgStyle} />
+            <SlideRenderer slide={slides[activeSlide]} brand={brand} activePrimary={activePrimary} fontTheme={fontTheme} bgStyle={bgStyle} editable={editable} onUpdateField={onUpdateField} onUpdateListItem={onUpdateListItem} />
           </div>
           {isLoading && <SlideLoadingOverlay />}
 
@@ -137,7 +140,7 @@ export function TikTokFrame({
       </div>
 
       <div className="bg-card border-t border-border/40 rounded-b-xl">
-        <CaptionEditor caption={caption} onCaptionChange={onCaptionChange} />
+        <CaptionEditor caption={caption} onCaptionChange={onCaptionChange} profileName={profileName} />
       </div>
     </div>
   )

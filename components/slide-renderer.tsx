@@ -1,6 +1,6 @@
 "use client"
 
-import type { Slide, BrandSettings } from "@/lib/types"
+import type { Slide, BrandSettings, SlideListItem } from "@/lib/types"
 import { colorThemes, fontThemes, buildBgStyle, type FontThemeId, type BgStyleId } from "@/lib/themes"
 import { CoverLayout }        from "./slides/cover"
 import { CtaLayout }          from "./slides/cta"
@@ -35,8 +35,8 @@ function slideHasImage(slide: Slide) {
   )
 }
 
-function renderLayout(slide: Slide, primary: string, bgStyle: BgStyleId, bgBuilder: typeof buildBgStyle) {
-  const p: LayoutProps = { slide, primary, bgStyle, bgBuilder }
+function renderLayout(slide: Slide, primary: string, bgStyle: BgStyleId, bgBuilder: typeof buildBgStyle, editable?: boolean, onUpdateField?: (field: keyof Slide, value: string) => void, onUpdateListItem?: (index: number, text: string) => void) {
+  const p: LayoutProps = { slide, primary, bgStyle, bgBuilder, editable, onUpdateField, onUpdateListItem }
   switch (slide.layout) {
     case "cover":        return <CoverLayout        {...p} />
     case "content":      return <ContentLayout      {...p} />
@@ -57,6 +57,9 @@ interface SlideRendererProps {
   fontTheme?: FontThemeId
   bgStyle?: BgStyleId
   bgBuilder?: typeof buildBgStyle
+  editable?: boolean
+  onUpdateField?: (field: keyof Slide, value: string) => void
+  onUpdateListItem?: (index: number, text: string) => void
 }
 
 export function SlideRenderer({
@@ -66,19 +69,21 @@ export function SlideRenderer({
   fontTheme = 'geist',
   bgStyle = 'gradient',
   bgBuilder = buildBgStyle,
+  editable,
+  onUpdateField,
+  onUpdateListItem,
 }: SlideRendererProps) {
   const hasBrand = brand && (brand.logoUrl || brand.name)
   const primary = activePrimary ?? colorThemes.green.primary
   const fontFamily = fontThemes[fontTheme]?.family ?? fontThemes.geist.family
   const hasImage = slideHasImage(slide)
-  // Background image mode: put brand at top to respect platform safe zones (TikTok bottom UI)
   const isBgMode = slide.imagePosition === "background"
   const brandPosition = isBgMode ? { top: "7%" } : { bottom: "14%" }
 
   return (
     <div className="relative flex h-full flex-col" style={{ fontFamily }}>
       <div className="flex-1 min-h-0">
-        {renderLayout(slide, primary, bgStyle, bgBuilder)}
+        {renderLayout(slide, primary, bgStyle, bgBuilder, editable, onUpdateField, onUpdateListItem)}
       </div>
       {hasBrand && (
         <div

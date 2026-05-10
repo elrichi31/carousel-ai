@@ -1,5 +1,6 @@
 "use client"
 
+import { EditableText } from "@/components/editable-text"
 import { HighlightedTitle, type LayoutProps } from "./shared"
 
 export const ctaVariants = [
@@ -8,7 +9,7 @@ export const ctaVariants = [
   { id: 'minimal',  label: 'Minimal'  },
 ]
 
-export function CtaLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps) {
+export function CtaLayout({ slide, primary, bgStyle, bgBuilder, editable, onUpdateField }: LayoutProps) {
   const variant = slide.layoutVariant ?? 'centered'
   const bg = bgBuilder(primary, bgStyle, 22, 6)
 
@@ -33,11 +34,21 @@ export function CtaLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps) {
         >
           {slide.emoji && <span className="text-4xl">{slide.emoji}</span>}
           {slide.ctaText && (
-            <h2 className="mt-3 text-xl font-bold leading-tight">
-              <HighlightedTitle text={slide.ctaText} primary={primary} />
-            </h2>
+            editable && onUpdateField ? (
+              <EditableText value={slide.ctaText} field="ctaText" onUpdate={onUpdateField} className="mt-3 text-xl font-bold leading-tight" />
+            ) : (
+              <h2 className="mt-3 text-xl font-bold leading-tight">
+                <HighlightedTitle text={slide.ctaText} primary={primary} />
+              </h2>
+            )
           )}
-          {slide.ctaSubtext && <p className="mt-2 text-sm opacity-70">{slide.ctaSubtext}</p>}
+          {slide.ctaSubtext && (
+            editable && onUpdateField ? (
+              <EditableText value={slide.ctaSubtext} field="ctaSubtext" onUpdate={onUpdateField} className="mt-2 text-sm opacity-70" multiline />
+            ) : (
+              <p className="mt-2 text-sm opacity-70">{slide.ctaSubtext}</p>
+            )
+          )}
           {followBtn}
         </div>
       </div>
@@ -49,11 +60,21 @@ export function CtaLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps) {
       <div className={`flex h-full flex-col items-center justify-center p-8 text-center ${slide.textColor}`} style={bg}>
         <div className="mb-5 h-px w-16" style={{ backgroundColor: primary }} />
         {slide.ctaText && (
-          <h2 className="text-xl font-bold leading-tight">
-            <HighlightedTitle text={slide.ctaText} primary={primary} />
-          </h2>
+          editable && onUpdateField ? (
+            <EditableText value={slide.ctaText} field="ctaText" onUpdate={onUpdateField} className="text-xl font-bold leading-tight" />
+          ) : (
+            <h2 className="text-xl font-bold leading-tight">
+              <HighlightedTitle text={slide.ctaText} primary={primary} />
+            </h2>
+          )
         )}
-        {slide.ctaSubtext && <p className="mt-3 text-sm opacity-60">{slide.ctaSubtext}</p>}
+        {slide.ctaSubtext && (
+          editable && onUpdateField ? (
+            <EditableText value={slide.ctaSubtext} field="ctaSubtext" onUpdate={onUpdateField} className="mt-3 text-sm opacity-60" multiline />
+          ) : (
+            <p className="mt-3 text-sm opacity-60">{slide.ctaSubtext}</p>
+          )
+        )}
         <div className="mt-5 h-px w-16" style={{ backgroundColor: primary }} />
       </div>
     )
@@ -63,11 +84,21 @@ export function CtaLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps) {
     <div className={`flex h-full flex-col items-center justify-center p-8 text-center ${slide.textColor}`} style={bg}>
       {slide.emoji && <span className="mb-4 text-4xl">{slide.emoji}</span>}
       {slide.ctaText && (
-        <h2 className="text-balance text-xl font-bold leading-tight">
-          <HighlightedTitle text={slide.ctaText} primary={primary} />
-        </h2>
+        editable && onUpdateField ? (
+          <EditableText value={slide.ctaText} field="ctaText" onUpdate={onUpdateField} className="text-balance text-xl font-bold leading-tight" />
+        ) : (
+          <h2 className="text-balance text-xl font-bold leading-tight">
+            <HighlightedTitle text={slide.ctaText} primary={primary} />
+          </h2>
+        )
       )}
-      {slide.ctaSubtext && <p className="mt-3 text-balance text-sm opacity-70">{slide.ctaSubtext}</p>}
+      {slide.ctaSubtext && (
+        editable && onUpdateField ? (
+          <EditableText value={slide.ctaSubtext} field="ctaSubtext" onUpdate={onUpdateField} className="mt-3 text-balance text-sm opacity-70" multiline />
+        ) : (
+          <p className="mt-3 text-balance text-sm opacity-70">{slide.ctaSubtext}</p>
+        )
+      )}
       {followBtn}
     </div>
   )

@@ -1,5 +1,6 @@
 "use client"
 
+import { EditableText } from "@/components/editable-text"
 import { HighlightedTitle, type LayoutProps } from "./shared"
 
 export const coverVariants = [
@@ -10,7 +11,7 @@ export const coverVariants = [
   { id: 'badge',    label: 'Badge'    },
 ]
 
-export function CoverLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps) {
+export function CoverLayout({ slide, primary, bgStyle, bgBuilder, editable, onUpdateField }: LayoutProps) {
   const variant = slide.layoutVariant ?? 'centered'
   const bg = bgBuilder(primary, bgStyle, 22, 6)
 
@@ -21,10 +22,20 @@ export function CoverLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps)
           <span className="absolute top-6 right-6 text-6xl opacity-20 select-none">{slide.emoji}</span>
         )}
         <div style={{ borderLeftWidth: 3, borderLeftColor: primary, paddingLeft: 12 }}>
-          <h1 className="text-3xl font-extrabold leading-tight tracking-tight">
-            <HighlightedTitle text={slide.title ?? ''} primary={primary} />
-          </h1>
-          {slide.subtitle && <p className="mt-2 text-sm opacity-60">{slide.subtitle}</p>}
+          {editable && onUpdateField ? (
+            <EditableText value={slide.title ?? ''} field="title" onUpdate={onUpdateField} className="text-3xl font-extrabold leading-tight tracking-tight" />
+          ) : (
+            <h1 className="text-3xl font-extrabold leading-tight tracking-tight">
+              <HighlightedTitle text={slide.title ?? ''} primary={primary} />
+            </h1>
+          )}
+          {slide.subtitle && (
+            editable && onUpdateField ? (
+              <EditableText value={slide.subtitle} field="subtitle" onUpdate={onUpdateField} className="mt-2 text-sm opacity-60" />
+            ) : (
+              <p className="mt-2 text-sm opacity-60">{slide.subtitle}</p>
+            )
+          )}
         </div>
       </div>
     )
@@ -34,11 +45,19 @@ export function CoverLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps)
     return (
       <div className={`flex h-full flex-col items-center justify-center p-10 text-center ${slide.textColor}`} style={bg}>
         <div className="mb-4 h-px w-12" style={{ backgroundColor: primary }} />
-        <h1 className="text-2xl font-bold leading-tight tracking-wide uppercase">
-          <HighlightedTitle text={slide.title ?? ''} primary={primary} />
-        </h1>
+        {editable && onUpdateField ? (
+          <EditableText value={slide.title ?? ''} field="title" onUpdate={onUpdateField} className="text-2xl font-bold leading-tight tracking-wide uppercase" />
+        ) : (
+          <h1 className="text-2xl font-bold leading-tight tracking-wide uppercase">
+            <HighlightedTitle text={slide.title ?? ''} primary={primary} />
+          </h1>
+        )}
         {slide.subtitle && (
-          <p className="mt-4 text-xs opacity-60 max-w-[200px] leading-relaxed">{slide.subtitle}</p>
+          editable && onUpdateField ? (
+            <EditableText value={slide.subtitle} field="subtitle" onUpdate={onUpdateField} className="mt-4 text-xs opacity-60 max-w-[200px] leading-relaxed" />
+          ) : (
+            <p className="mt-4 text-xs opacity-60 max-w-[200px] leading-relaxed">{slide.subtitle}</p>
+          )
         )}
         <div className="mt-4 h-px w-12" style={{ backgroundColor: primary }} />
       </div>
@@ -49,11 +68,19 @@ export function CoverLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps)
     return (
       <div className={`flex h-full flex-row ${slide.textColor}`} style={bg}>
         <div className="flex flex-1 flex-col justify-center p-8">
-          <h1 className="text-2xl font-bold leading-tight">
-            <HighlightedTitle text={slide.title ?? ''} primary={primary} />
-          </h1>
+          {editable && onUpdateField ? (
+            <EditableText value={slide.title ?? ''} field="title" onUpdate={onUpdateField} className="text-2xl font-bold leading-tight" />
+          ) : (
+            <h1 className="text-2xl font-bold leading-tight">
+              <HighlightedTitle text={slide.title ?? ''} primary={primary} />
+            </h1>
+          )}
           {slide.subtitle && (
-            <p className="mt-3 text-sm opacity-60 leading-relaxed">{slide.subtitle}</p>
+            editable && onUpdateField ? (
+              <EditableText value={slide.subtitle} field="subtitle" onUpdate={onUpdateField} className="mt-3 text-sm opacity-60 leading-relaxed" />
+            ) : (
+              <p className="mt-3 text-sm opacity-60 leading-relaxed">{slide.subtitle}</p>
+            )
           )}
           <div className="mt-5 h-0.5 w-10" style={{ backgroundColor: primary }} />
         </div>
@@ -70,28 +97,47 @@ export function CoverLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps)
     return (
       <div className={`flex h-full flex-col items-center justify-center p-8 text-center ${slide.textColor}`} style={bg}>
         {slide.subtitle && (
-          <span
-            className="mb-4 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-widest"
-            style={{ backgroundColor: `color-mix(in srgb, ${primary} 20%, transparent)`, color: primary }}
-          >
-            {slide.subtitle}
-          </span>
+          editable && onUpdateField ? (
+            <EditableText value={slide.subtitle} field="subtitle" onUpdate={onUpdateField} className="mb-4 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-widest" style={{ backgroundColor: `color-mix(in srgb, ${primary} 20%, transparent)`, color: primary } as React.CSSProperties} />
+          ) : (
+            <span
+              className="mb-4 rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-widest"
+              style={{ backgroundColor: `color-mix(in srgb, ${primary} 20%, transparent)`, color: primary }}
+            >
+              {slide.subtitle}
+            </span>
+          )
         )}
         {slide.emoji && <span className="mb-3 text-4xl">{slide.emoji}</span>}
-        <h1 className="text-2xl font-extrabold leading-tight">
-          <HighlightedTitle text={slide.title ?? ''} primary={primary} />
-        </h1>
+        {editable && onUpdateField ? (
+          <EditableText value={slide.title ?? ''} field="title" onUpdate={onUpdateField} className="text-2xl font-extrabold leading-tight" />
+        ) : (
+          <h1 className="text-2xl font-extrabold leading-tight">
+            <HighlightedTitle text={slide.title ?? ''} primary={primary} />
+          </h1>
+        )}
       </div>
     )
   }
 
+  // centered (default)
   return (
     <div className={`flex h-full flex-col items-center justify-center p-8 text-center ${slide.textColor}`} style={bg}>
       {slide.emoji && <span className="mb-4 text-5xl">{slide.emoji}</span>}
-      <h1 className="text-balance text-2xl font-bold leading-tight">
-        <HighlightedTitle text={slide.title ?? ''} primary={primary} />
-      </h1>
-      {slide.subtitle && <p className="mt-3 text-balance text-sm opacity-70">{slide.subtitle}</p>}
+      {editable && onUpdateField ? (
+        <EditableText value={slide.title ?? ''} field="title" onUpdate={onUpdateField} className="text-balance text-2xl font-bold leading-tight" />
+      ) : (
+        <h1 className="text-balance text-2xl font-bold leading-tight">
+          <HighlightedTitle text={slide.title ?? ''} primary={primary} />
+        </h1>
+      )}
+      {slide.subtitle && (
+        editable && onUpdateField ? (
+          <EditableText value={slide.subtitle} field="subtitle" onUpdate={onUpdateField} className="mt-3 text-balance text-sm opacity-70" />
+        ) : (
+          <p className="mt-3 text-balance text-sm opacity-70">{slide.subtitle}</p>
+        )
+      )}
     </div>
   )
 }

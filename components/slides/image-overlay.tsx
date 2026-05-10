@@ -1,5 +1,6 @@
 "use client"
 
+import { EditableText } from "@/components/editable-text"
 import { ImagePlaceholder, type LayoutProps } from "./shared"
 
 export const imageOverlayVariants = [
@@ -8,7 +9,7 @@ export const imageOverlayVariants = [
   { id: 'top',     label: 'Texto arriba' },
 ]
 
-export function ImageOverlayLayout({ slide, primary }: LayoutProps) {
+export function ImageOverlayLayout({ slide, primary, editable, onUpdateField }: LayoutProps) {
   const variant = slide.layoutVariant ?? 'bottom'
 
   const overlayClass =
@@ -40,14 +41,22 @@ export function ImageOverlayLayout({ slide, primary }: LayoutProps) {
           <span className="mb-3 text-4xl">{slide.emoji}</span>
         )}
         {slide.title && (
-          <h2 className="text-balance text-xl font-bold leading-tight drop-shadow-md" style={{ color: '#fff' }}>
-            {slide.title}
-          </h2>
+          editable && onUpdateField ? (
+            <EditableText value={slide.title} field="title" onUpdate={onUpdateField} className="text-balance text-xl font-bold leading-tight drop-shadow-md" />
+          ) : (
+            <h2 className="text-balance text-xl font-bold leading-tight drop-shadow-md" style={{ color: '#fff' }}>
+              {slide.title}
+            </h2>
+          )
         )}
         {slide.content && (
-          <p className="mt-3 text-pretty text-sm leading-relaxed opacity-85 drop-shadow-sm max-w-[90%]">
-            {slide.content}
-          </p>
+          editable && onUpdateField ? (
+            <EditableText value={slide.content} field="content" onUpdate={onUpdateField} className="mt-3 text-pretty text-sm leading-relaxed opacity-85 drop-shadow-sm max-w-[90%]" multiline />
+          ) : (
+            <p className="mt-3 text-pretty text-sm leading-relaxed opacity-85 drop-shadow-sm max-w-[90%]">
+              {slide.content}
+            </p>
+          )
         )}
         {slide.emoji && variant === 'bottom' && (
           <span className="mt-4 text-3xl">{slide.emoji}</span>

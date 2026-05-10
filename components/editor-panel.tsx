@@ -1,6 +1,6 @@
 "use client"
 
-import { Copy, Download, ImageIcon, Trash2 } from "lucide-react"
+import { Copy, Download, FolderArchive, ImageIcon, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { LayoutPicker } from "@/components/editor/layout-picker"
@@ -28,6 +28,7 @@ interface EditorPanelProps {
   onDuplicateSlide: () => void
   onDeleteSlide: () => void
   onExport: () => void
+  onExportZip: () => void
   onImageSearch: () => void
   onImageGenerate: () => void
   onImageRemove: () => void
@@ -35,6 +36,7 @@ interface EditorPanelProps {
   onImageUpload: (file: File) => void
   isRegenerating?: boolean
   isExporting?: boolean
+  isExportingZip?: boolean
   isImageLoading?: boolean
 }
 
@@ -43,9 +45,9 @@ export function EditorPanel({
   selectedColor, customColor, selectedFont, selectedBgStyle, activePrimary,
   brandColors = [],
   onVariantChange, onColorChange, onFontChange, onBgStyleChange,
-  onRegenerateSlide, onDuplicateSlide, onDeleteSlide, onExport,
+  onRegenerateSlide, onDuplicateSlide, onDeleteSlide, onExport, onExportZip,
   onImageSearch, onImageGenerate, onImageRemove, onImageRegenerateWithPrompt, onImageUpload,
-  isRegenerating = false, isExporting = false, isImageLoading = false,
+  isRegenerating = false, isExporting = false, isExportingZip = false, isImageLoading = false,
 }: EditorPanelProps) {
   const selectedLayout = currentSlide.layout
   const currentVariant = currentSlide.layoutVariant ?? 'default'
@@ -144,21 +146,39 @@ export function EditorPanel({
         </div>
       </div>
 
-      <div className="border-t border-border/50 p-4">
+      <div className="border-t border-border/50 p-4 space-y-2">
         <Button
-          onClick={onExport}
-          disabled={isExporting}
+          onClick={onExportZip}
+          disabled={isExportingZip || isExporting}
           className="w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {isExportingZip ? (
+            <>
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+              Generando ZIP...
+            </>
+          ) : (
+            <>
+              <FolderArchive className="mr-2 h-4 w-4" />
+              Descargar ZIP
+            </>
+          )}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={onExport}
+          disabled={isExporting || isExportingZip}
+          className="w-full border-border/50 bg-transparent text-foreground hover:bg-muted disabled:opacity-50"
         >
           {isExporting ? (
             <>
-              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-              Exporting...
+              <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-foreground/40 border-t-transparent" />
+              Exportando...
             </>
           ) : (
             <>
               <Download className="mr-2 h-4 w-4" />
-              Export Carousel
+              PNG por PNG
             </>
           )}
         </Button>

@@ -1,5 +1,6 @@
 "use client"
 
+import { EditableText } from "@/components/editable-text"
 import { type LayoutProps } from "./shared"
 
 export const quoteVariants = [
@@ -8,7 +9,7 @@ export const quoteVariants = [
   { id: 'card',    label: 'Card'      },
 ]
 
-export function QuoteLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps) {
+export function QuoteLayout({ slide, primary, bgStyle, bgBuilder, editable, onUpdateField }: LayoutProps) {
   const variant = slide.layoutVariant ?? 'default'
   const bg = bgBuilder(primary, bgStyle, 15, 5)
 
@@ -16,11 +17,19 @@ export function QuoteLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps)
     return (
       <div className={`flex h-full flex-col justify-center p-8 ${slide.textColor}`} style={bg}>
         <div style={{ borderLeftWidth: 3, borderLeftColor: primary, paddingLeft: 16 }}>
-          <blockquote className="text-balance text-lg font-medium italic leading-relaxed">
-            {slide.quote}
-          </blockquote>
+          {editable && onUpdateField ? (
+            <EditableText value={slide.quote ?? ''} field="quote" onUpdate={onUpdateField} className="text-balance text-lg font-medium italic leading-relaxed" multiline />
+          ) : (
+            <blockquote className="text-balance text-lg font-medium italic leading-relaxed">
+              {slide.quote}
+            </blockquote>
+          )}
           {slide.quoteAuthor && (
-            <cite className="mt-3 block text-sm not-italic opacity-60">&mdash; {slide.quoteAuthor}</cite>
+            editable && onUpdateField ? (
+              <EditableText value={slide.quoteAuthor} field="quoteAuthor" onUpdate={onUpdateField} className="mt-3 text-sm opacity-60" />
+            ) : (
+              <cite className="mt-3 block text-sm not-italic opacity-60">&mdash; {slide.quoteAuthor}</cite>
+            )
           )}
         </div>
       </div>
@@ -38,11 +47,19 @@ export function QuoteLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps)
           }}
         >
           <span className="text-3xl" style={{ color: primary, opacity: 0.6 }}>&ldquo;</span>
-          <blockquote className="mt-2 text-balance text-base font-medium italic leading-relaxed">
-            {slide.quote}
-          </blockquote>
+          {editable && onUpdateField ? (
+            <EditableText value={slide.quote ?? ''} field="quote" onUpdate={onUpdateField} className="mt-2 text-balance text-base font-medium italic leading-relaxed" multiline />
+          ) : (
+            <blockquote className="mt-2 text-balance text-base font-medium italic leading-relaxed">
+              {slide.quote}
+            </blockquote>
+          )}
           {slide.quoteAuthor && (
-            <cite className="mt-3 block text-sm not-italic opacity-60">&mdash; {slide.quoteAuthor}</cite>
+            editable && onUpdateField ? (
+              <EditableText value={slide.quoteAuthor} field="quoteAuthor" onUpdate={onUpdateField} className="mt-3 text-sm opacity-60" />
+            ) : (
+              <cite className="mt-3 block text-sm not-italic opacity-60">&mdash; {slide.quoteAuthor}</cite>
+            )
           )}
         </div>
       </div>
@@ -52,11 +69,19 @@ export function QuoteLayout({ slide, primary, bgStyle, bgBuilder }: LayoutProps)
   return (
     <div className={`flex h-full flex-col items-center justify-center p-8 text-center ${slide.textColor}`} style={bg}>
       <span className="mb-4 text-4xl" style={{ color: primary, opacity: 0.6 }}>&ldquo;</span>
-      <blockquote className="text-balance text-lg font-medium italic leading-relaxed">
-        {slide.quote}
-      </blockquote>
+      {editable && onUpdateField ? (
+        <EditableText value={slide.quote ?? ''} field="quote" onUpdate={onUpdateField} className="text-balance text-lg font-medium italic leading-relaxed" multiline />
+      ) : (
+        <blockquote className="text-balance text-lg font-medium italic leading-relaxed">
+          {slide.quote}
+        </blockquote>
+      )}
       {slide.quoteAuthor && (
-        <cite className="mt-4 text-sm not-italic opacity-60">&mdash; {slide.quoteAuthor}</cite>
+        editable && onUpdateField ? (
+          <EditableText value={slide.quoteAuthor} field="quoteAuthor" onUpdate={onUpdateField} className="mt-4 text-sm opacity-60" />
+        ) : (
+          <cite className="mt-4 text-sm not-italic opacity-60">&mdash; {slide.quoteAuthor}</cite>
+        )
       )}
     </div>
   )

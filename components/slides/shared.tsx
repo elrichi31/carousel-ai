@@ -12,6 +12,9 @@ export type LayoutProps = {
   primary: string
   bgStyle: BgStyleId
   bgBuilder: BgBuilder
+  editable?: boolean
+  onUpdateField?: (field: keyof Slide, value: string) => void
+  onUpdateListItem?: (index: number, text: string) => void
 }
 
 const STOP_WORDS = new Set([
